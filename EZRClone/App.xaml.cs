@@ -20,6 +20,7 @@ public partial class App : Application
         services.AddSingleton<IRCloneConfigService, RCloneConfigService>();
         services.AddSingleton<IRCloneProcessService, RCloneProcessService>();
         services.AddSingleton<IJobStorageService, JobStorageService>();
+        services.AddSingleton<IBatchImportService, BatchImportService>();
 
         // ViewModels
         services.AddSingleton<MainWindowViewModel>();

@@ -13,6 +13,7 @@ public partial class JobsViewModel : ObservableObject
     private readonly IRCloneConfigService _configService;
     private readonly IRCloneProcessService _processService;
     private readonly IAppSettingsService _settingsService;
+    private readonly IBatchImportService _batchImportService;
 
     [ObservableProperty]
     private ObservableCollection<RCloneJob> _jobs = new();
@@ -34,16 +35,21 @@ public partial class JobsViewModel : ObservableObject
     [ObservableProperty]
     private bool _isRunning;
 
+    [ObservableProperty]
+    private string? _statusMessage;
+
     public JobsViewModel(
         IJobStorageService jobStorageService,
         IRCloneConfigService configService,
         IRCloneProcessService processService,
-        IAppSettingsService settingsService)
+        IAppSettingsService settingsService,
+        IBatchImportService batchImportService)
     {
         _jobStorageService = jobStorageService;
         _configService = configService;
         _processService = processService;
         _settingsService = settingsService;
+        _batchImportService = batchImportService;
         
         _ = LoadJobsAsync();
         _ = LoadRemotesAsync();
@@ -128,6 +134,8 @@ public partial class JobsViewModel : ObservableObject
             Verbosity = SelectedJob.Verbosity,
             IncludePatterns = new List<string>(SelectedJob.IncludePatterns),
             ExcludePatterns = new List<string>(SelectedJob.ExcludePatterns),
+            MinAge = SelectedJob.MinAge,
+            ExtraFlags = new List<string>(SelectedJob.ExtraFlags),
             LastRun = SelectedJob.LastRun,
             LastStatus = SelectedJob.LastStatus,
             LastError = SelectedJob.LastError
@@ -211,28 +219,66 @@ public partial class JobsViewModel : ObservableObject
         }
     }
 
-    private List<string> BuildRCloneArgs(RCloneJob job)
+    [RelayCommand]
+    private async Task ImportFromBatchFileAsync(string filePath)
+    {
+        var result = _batchImportService.ImportFromFile(filePath);
+
+        foreach (var job in result.Jobs)
+        {
+            Jobs.Add(job);
+        }
+
+        if (result.Jobs.Count > 0)
+        {
+            await _jobStorageService.SaveJobsAsync(Jobs.ToList());
+            OnPropertyChanged(nameof(HasJobs));
+            SelectedJob = result.Jobs[0];
+        }
+
+        var parts = new List<string>();
+        if (result.Jobs.Count > 0)
+            parts.Add($"Imported {result.Jobs.Count} job{(result.Jobs.Count > 1 ? "s" : "")}");
+        if (result.SkippedLines.Count > 0)
+            parts.Add($"skipped {result.SkippedLines.Count} unsupported line{(result.SkippedLines.Count > 1 ? "s" : "")}");
+
+        StatusMessage = parts.Count > 0 ? string.Join(", ", parts) : "No rclone commands found in file";
+    }
+
+    private static List<string> BuildRCloneArgs(RCloneJob job)
     {
         var args = new List<string>();
 
         // Operation
         args.Add(job.Operation.ToString().ToLower());
 
-        // Source
+        // Source / Target path
         var source = job.SourceIsRemote && !string.IsNullOrEmpty(job.SourceRemoteName)
             ? $"{job.SourceRemoteName}:{job.SourcePath}"
             : job.SourcePath;
         args.Add(source);
 
-        // Destination
-        var dest = job.DestinationIsRemote && !string.IsNullOrEmpty(job.DestinationRemoteName)
-            ? $"{job.DestinationRemoteName}:{job.DestinationPath}"
-            : job.DestinationPath;
-        args.Add(dest);
+        // Destination (not used for Delete)
+        if (job.Operation != RCloneOperation.Delete)
+        {
+            var dest = job.DestinationIsRemote && !string.IsNullOrEmpty(job.DestinationRemoteName)
+                ? $"{job.DestinationRemoteName}:{job.DestinationPath}"
+                : job.DestinationPath;
+            args.Add(dest);
+        }
 
         // Options
-        args.Add("--transfers");
-        args.Add(job.Transfers.ToString());
+        if (job.Operation != RCloneOperation.Delete)
+        {
+            args.Add("--transfers");
+            args.Add(job.Transfers.ToString());
+        }
+
+        if (!string.IsNullOrEmpty(job.MinAge))
+        {
+            args.Add("--min-age");
+            args.Add(job.MinAge);
+        }
 
         if (job.CreateLogFile && !string.IsNullOrEmpty(job.LogFilePath))
         {
@@ -263,6 +309,11 @@ public partial class JobsViewModel : ObservableObject
         {
             args.Add("--exclude");
             args.Add(pattern);
+        }
+
+        foreach (var flag in job.ExtraFlags)
+        {
+            args.Add(flag);
         }
 
         return args;

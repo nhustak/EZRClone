@@ -65,6 +65,20 @@ public partial class JobsView : UserControl
         return dialog.ShowDialog() == true ? dialog.FolderName : null;
     }
 
+    private void OnImportBatch(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Import Batch File",
+            Filter = "Batch files (*.bat;*.cmd)|*.bat;*.cmd|All files (*.*)|*.*"
+        };
+
+        if (dialog.ShowDialog() == true && DataContext is ViewModels.JobsViewModel vm)
+        {
+            vm.ImportFromBatchFileCommand.Execute(dialog.FileName);
+        }
+    }
+
     private RCloneJob? GetEditingJob()
     {
         return (DataContext as ViewModels.JobsViewModel)?.EditingJob;

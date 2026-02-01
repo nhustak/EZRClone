@@ -21,6 +21,20 @@ public class RCloneJob
     // Filtering options
     public List<string> IncludePatterns { get; set; } = new();
     public List<string> ExcludePatterns { get; set; } = new();
+
+    // Delete operation options
+    public string? MinAge { get; set; }
+    public List<string> ExtraFlags { get; set; } = new();
+
+    /// <summary>Space-separated extra flags for UI binding.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string ExtraFlagsText
+    {
+        get => string.Join(" ", ExtraFlags);
+        set => ExtraFlags = string.IsNullOrWhiteSpace(value)
+            ? new List<string>()
+            : value.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
+    }
     
     // Scheduling (for future use)
     public bool IsScheduled { get; set; }
@@ -36,7 +50,8 @@ public enum RCloneOperation
 {
     Copy,    // Copy files from source to dest, skipping identical files
     Sync,    // Make destination identical to source (one way)
-    Move     // Move files from source to dest
+    Move,    // Move files from source to dest
+    Delete   // Delete files from remote
 }
 
 public enum RCloneVerbosity
