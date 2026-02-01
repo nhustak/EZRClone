@@ -39,6 +39,11 @@
                                  Command="{Binding NavigateCommand}"
                                  CommandParameter="Jobs" />
                     <RadioButton Style="{DynamicResource NavButtonStyle}"
+                                 Content="&#xED25;"
+                                 Tag="Browse"
+                                 Command="{Binding NavigateCommand}"
+                                 CommandParameter="Browse" />
+                    <RadioButton Style="{DynamicResource NavButtonStyle}"
                                  Content="&#xE9D5;"
                                  Tag="Log"
                                  Command="{Binding NavigateCommand}"

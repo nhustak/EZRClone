@@ -40,6 +40,8 @@ public partial class ConfigViewModel : ObservableObject
 
     public List<RCloneBackendType> BackendTypes { get; } = RCloneBackendType.GetKnownTypes();
 
+    public Action<string>? NavigateToRemoteBrowse { get; set; }
+
     public ConfigViewModel(
         IRCloneConfigService configService,
         IRCloneProcessService processService,
@@ -159,6 +161,13 @@ public partial class ConfigViewModel : ObservableObject
         _configService.WriteConfig(ConfigFilePath, Remotes.ToList());
         SelectedRemote = null;
         StatusMessage = $"Deleted remote '{name}'.";
+    }
+
+    [RelayCommand]
+    private void BrowseRemote()
+    {
+        if (SelectedRemote is null) return;
+        NavigateToRemoteBrowse?.Invoke(SelectedRemote.Name);
     }
 
     [RelayCommand]

@@ -106,6 +106,8 @@
                                     Command="{Binding DeleteCommand}" Margin="0,0,8,0" />
                             <Button Content="Test"
                                     Command="{Binding TestConnectionCommand}" />
+                            <Button Content="Browse"
+                                    Command="{Binding BrowseRemoteCommand}" Margin="8,0,0,0" />
                         </StackPanel>
                     </StackPanel>
 

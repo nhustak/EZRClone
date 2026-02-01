@@ -27,6 +27,7 @@ public partial class App : Application
         services.AddSingleton<ConfigViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<JobsViewModel>();
+        services.AddSingleton<BrowseViewModel>();
         services.AddSingleton<LogViewModel>();
 
         // Window
@@ -39,6 +40,16 @@ public partial class App : Application
         var processService = _serviceProvider.GetRequiredService<IRCloneProcessService>();
         var settings = settingsService.Load();
         processService.RCloneExePath = settings.RCloneExePath;
+
+        // Wire up Config → Browse navigation
+        var configVm = _serviceProvider.GetRequiredService<ConfigViewModel>();
+        var browseVm = _serviceProvider.GetRequiredService<BrowseViewModel>();
+        var mainVm = _serviceProvider.GetRequiredService<MainWindowViewModel>();
+        configVm.NavigateToRemoteBrowse = remoteName =>
+        {
+            browseVm.SelectedRemote = remoteName;
+            mainVm.NavigateCommand.Execute("Browse");
+        };
 
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.DataContext = _serviceProvider.GetRequiredService<MainWindowViewModel>();
