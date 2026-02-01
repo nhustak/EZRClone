@@ -8,19 +8,23 @@
 
 - Simplify RClone usage by replacing CLI commands with an intuitive WPF GUI
 - Provide visual management of RClone remotes (cloud storage connections)
+- Enable creation and execution of sync, copy, and move jobs
 - Lower the barrier to entry for users unfamiliar with command-line tools
 
 ### Target Users
 
 - Windows users who want cloud storage management without memorizing CLI syntax
 - IT administrators who need a quick way to configure and manage RClone remotes
+- Users automating file transfers across multiple cloud services
 
-### Initial Scope
+### Scope
 
-| Module | Description |
-|--------|-------------|
-| App Settings | Configure the path to `rclone.exe` |
-| Config Editor | Read, create, edit, and delete remotes in `rclone.conf` |
+| Module | Description | Status |
+|--------|-------------|--------|
+| App Settings | Configure the path to `rclone.exe` | ✅ Implemented |
+| Config Editor | Read, create, edit, and delete remotes in `rclone.conf` | ✅ Implemented |
+| Jobs | Create, manage, and execute sync/copy/move operations | ✅ Implemented |
+| Log Viewer | Display rclone command output and application logs | Placeholder |
 
 ---
 
@@ -28,13 +32,14 @@
 
 | Component | Technology |
 |-----------|------------|
-| Runtime | .NET 9 |
+| Runtime | .NET 9.0 |
 | Language | C# 13 |
 | UI Framework | WPF (Windows Presentation Foundation) |
-| MVVM Toolkit | CommunityToolkit.Mvvm (source-generated) |
-| Serialization | System.Text.Json (app settings) |
-| INI Parsing | Custom parser or `ini-parser-netstandard` NuGet |
-| DI Container | Microsoft.Extensions.DependencyInjection |
+| MVVM Toolkit | CommunityToolkit.Mvvm 8.4.0 (source-generated) |
+| UI Components | WPF-UI 4.2.0 (modern controls) |
+| Serialization | System.Text.Json (app settings, jobs) |
+| INI Parsing | Custom implementation |
+| DI Container | Microsoft.Extensions.DependencyInjection 10.0.2 |
 
 ---
 
@@ -59,9 +64,9 @@ The application uses a **left navigation sidebar + content area** shell. Each na
 
 | Icon | Label | View | Status |
 |------|-------|------|--------|
-| 📁 | Config | ConfigView | Initial scope |
-| ⚙️ | Settings | SettingsView | Initial scope |
-| 🔄 | Jobs | JobsView | Placeholder (future) |
+| 📁 | Config | ConfigView | ✅ Implemented |
+| ⚙️ | Settings | SettingsView | ✅ Implemented |
+| 🔄 | Jobs | JobsView | ✅ Implemented |
 | 📋 | Log | LogView | Placeholder (future) |
 
 #### Main Shell Layout
@@ -179,19 +184,66 @@ When the user clicks **Edit** or **+ New**, the detail panel switches in-place t
 └──────────┴─────────────────────────────────────────────────────┘
 ```
 
-#### Window: Jobs View (Future Placeholder)
+#### Window: Jobs View
+
+The Jobs view provides full management of RClone sync/copy/move operations.
 
 ```
-┌──────────┬─────────────────────────────────────────────────────┐
-│          │  Jobs                                               │
-│   NAV    │                                                     │
-│          │  🔄 No jobs configured yet.                         │
-│          │                                                     │
-│          │  This view will support creating and monitoring     │
-│          │  sync/copy/move operations in a future release.     │
-│          │                                                     │
-└──────────┴─────────────────────────────────────────────────────┘
+┌──────────┬─────────────────────────────────────────────────────────┐
+│          │  Jobs                                    [+ Add Job]    │
+│   NAV    │                                                         │
+│          │  ┌──────────────────────────────────────────────────┐   │
+│          │  │ Name          │ Operation │ Last Run   │ Status  │   │
+│          │  │───────────────│───────────│────────────│─────────│   │
+│          │  │ ● Daily Sync  │ Sync      │ 2025-01-30 │ ✓       │   │
+│          │  │   S3 Backup   │ Copy      │ 2025-01-29 │ ✗       │   │
+│          │  │   Archive     │ Move      │ (never)    │ —       │   │
+│          │  └──────────────────────────────────────────────────┘   │
+│          │                                                         │
+│          │  [Edit]  [Delete]  [▶ Run]                              │
+│          │                                                         │
+│          │  ── Edit Job ──────────────────────────────────────     │
+│          │  Name:       [Daily Sync             ]                  │
+│          │  Operation:  [Sync              ▼    ]                  │
+│          │                                                         │
+│          │  Source:                                                 │
+│          │  ☐ Remote     Remote: [myS3     ▼]                      │
+│          │  Path:        [/backups                ]                 │
+│          │                                                         │
+│          │  Destination:                                            │
+│          │  ☑ Remote     Remote: [myGDrive ▼]                      │
+│          │  Path:        [/archive                ]                 │
+│          │                                                         │
+│          │  Options:                                                │
+│          │  Transfers:   [4    ]                                    │
+│          │  Verbosity:   [Normal           ▼]                      │
+│          │  ☑ Create Log File                                      │
+│          │  Log Path:    [C:\logs\sync.log       ]                 │
+│          │                                                         │
+│          │  Include Patterns:  *.doc, *.pdf                        │
+│          │  Exclude Patterns:  *.tmp, thumbs.db                    │
+│          │                                                         │
+│          │  [Save]  [Cancel]                                       │
+└──────────┴─────────────────────────────────────────────────────────┘
 ```
+
+**Job Operations:**
+
+| Operation | RClone Command | Behavior |
+|-----------|---------------|----------|
+| Copy | `rclone copy` | Copy files from source to dest, skipping identical files |
+| Sync | `rclone sync` | Make destination identical to source (one-way) |
+| Move | `rclone move` | Move files from source to dest |
+
+**Job Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| Transfers | Number of parallel file transfers | 4 |
+| Verbosity | Quiet, Normal, Verbose, VeryVerbose | Normal |
+| Create Log File | Write rclone output to a log file | true |
+| Include Patterns | Only transfer files matching these patterns | (none) |
+| Exclude Patterns | Skip files matching these patterns | (none) |
 
 #### Window: Log View (Future Placeholder)
 
@@ -210,49 +262,69 @@ When the user clicks **Edit** or **+ New**, the detail panel switches in-place t
 ### Project Structure
 
 ```
-EZRClone.sln
+EZRClone.slnx
 └── EZRClone/
     ├── App.xaml                        # Application entry, DI container setup
     ├── App.xaml.cs
+    ├── MainWindow.xaml                 # App shell: sidebar + content area
+    ├── MainWindow.xaml.cs
+    ├── AssemblyInfo.cs
     │
     ├── Models/
     │   ├── AppSettings.cs              # App-level settings (rclone.exe path, preferences)
     │   ├── RCloneRemote.cs             # One configured remote from rclone.conf
-    │   └── RCloneBackendType.cs        # Enum/metadata for backend types
+    │   ├── RCloneBackendType.cs        # Metadata for known backend types
+    │   └── RCloneJob.cs                # Job configuration, enums (Operation, Status, Verbosity)
     │
     ├── ViewModels/
     │   ├── MainWindowViewModel.cs      # Shell/navigation state
     │   ├── ConfigViewModel.cs          # Remote list + detail + inline edit
     │   ├── SettingsViewModel.cs        # rclone.exe path configuration
-    │   ├── JobsViewModel.cs            # Placeholder
+    │   ├── JobsViewModel.cs            # Job management and execution
     │   └── LogViewModel.cs             # Placeholder
     │
     ├── Views/
-    │   ├── MainWindow.xaml             # App shell: sidebar + content area
     │   ├── ConfigView.xaml             # Master-detail remote management
     │   ├── SettingsView.xaml           # App settings page
-    │   ├── JobsView.xaml               # Placeholder
+    │   ├── JobsView.xaml               # Job creation, editing, and execution
     │   └── LogView.xaml                # Placeholder
     │
-    └── Services/
-        ├── IAppSettingsService.cs      # Interface: load/save app settings
-        ├── AppSettingsService.cs       # Implementation: JSON file in %APPDATA%
-        ├── IRCloneConfigService.cs     # Interface: parse/write rclone.conf
-        ├── RCloneConfigService.cs      # Implementation: INI read/write + CRUD
-        ├── IRCloneProcessService.cs    # Interface: execute rclone.exe commands
-        └── RCloneProcessService.cs     # Implementation: Process.Start wrapper
+    ├── Services/
+    │   ├── IAppSettingsService.cs      # Interface: load/save app settings
+    │   ├── AppSettingsService.cs       # Implementation: JSON file in %APPDATA%
+    │   ├── IRCloneConfigService.cs     # Interface: parse/write rclone.conf
+    │   ├── RCloneConfigService.cs      # Implementation: INI read/write
+    │   ├── IRCloneProcessService.cs    # Interface: execute rclone.exe commands
+    │   ├── RCloneProcessService.cs     # Implementation: Process.Start wrapper
+    │   ├── IJobStorageService.cs       # Interface: load/save jobs
+    │   └── JobStorageService.cs        # Implementation: JSON file in %APPDATA%
+    │
+    ├── Converters/
+    │   └── InverseBoolToVisConverter.cs # Bool ↔ Visibility converter
+    │
+    └── Resources/
+        └── DarkTheme.xaml              # Dark theme color definitions and styles
 ```
 
 ### Dependency Injection Setup
 
 ```csharp
 // App.xaml.cs
+// Services
 services.AddSingleton<IAppSettingsService, AppSettingsService>();
 services.AddSingleton<IRCloneConfigService, RCloneConfigService>();
 services.AddSingleton<IRCloneProcessService, RCloneProcessService>();
+services.AddSingleton<IJobStorageService, JobStorageService>();
+
+// ViewModels (all singletons for navigation state preservation)
 services.AddSingleton<MainWindowViewModel>();
-services.AddTransient<SettingsViewModel>();
-services.AddTransient<RemotesViewModel>();
+services.AddSingleton<ConfigViewModel>();
+services.AddSingleton<SettingsViewModel>();
+services.AddSingleton<JobsViewModel>();
+services.AddSingleton<LogViewModel>();
+
+// Window
+services.AddSingleton<MainWindow>();
 ```
 
 ---
@@ -456,6 +528,51 @@ public interface IRCloneConfigService
 | `AppSettings` | `RCloneExePath`, `RCloneConfigPath` | Application configuration |
 | `RCloneRemote` | `Name`, `Type`, `Properties` (Dictionary) | One remote from rclone.conf |
 | `RCloneBackendType` | `TypeName`, `DisplayName`, `Description` | UI metadata for known backend types |
+| `RCloneJob` | `Id`, `Name`, `Operation`, Source/Dest paths, options, status | Job configuration and execution state |
+
+### RCloneJob Model
+
+```csharp
+public class RCloneJob
+{
+    public string Id { get; set; }                      // GUID
+    public string Name { get; set; }
+    public RCloneOperation Operation { get; set; }      // Copy, Sync, Move
+    public string SourcePath { get; set; }
+    public bool SourceIsRemote { get; set; }
+    public string? SourceRemoteName { get; set; }
+    public string DestinationPath { get; set; }
+    public bool DestinationIsRemote { get; set; }
+    public string? DestinationRemoteName { get; set; }
+
+    // Common options
+    public int Transfers { get; set; } = 4;
+    public bool CreateLogFile { get; set; } = true;
+    public string? LogFilePath { get; set; }
+    public RCloneVerbosity Verbosity { get; set; }      // Quiet, Normal, Verbose, VeryVerbose
+
+    // Filtering
+    public List<string> IncludePatterns { get; set; }
+    public List<string> ExcludePatterns { get; set; }
+
+    // Status
+    public DateTime? LastRun { get; set; }
+    public RCloneJobStatus LastStatus { get; set; }     // NotRun, Running, Success, Failed, Cancelled
+    public string? LastError { get; set; }
+}
+```
+
+**Storage:** JSON file at `%APPDATA%\EZRClone\jobs.json`
+
+### IJobStorageService Interface
+
+```csharp
+public interface IJobStorageService
+{
+    Task<List<RCloneJob>> LoadJobsAsync();
+    Task SaveJobsAsync(List<RCloneJob> jobs);
+}
+```
 
 ---
 
@@ -469,6 +586,9 @@ public interface IRCloneProcessService
     /// <summary>Run rclone with arguments and return stdout.</summary>
     Task<string> RunAsync(string arguments);
 
+    /// <summary>Execute rclone with args list, return exit code + stdout/stderr.</summary>
+    Task<(int ExitCode, string Output, string Error)> ExecuteAsync(List<string> args);
+
     /// <summary>Get rclone version string for validation.</summary>
     Task<string> GetVersionAsync();
 
@@ -479,11 +599,20 @@ public interface IRCloneProcessService
 
 ---
 
-## 8. Future Considerations
+## 8. File I/O Locations
 
-These are **out of scope** for the initial release but inform architectural decisions:
+| Purpose | Location | Format |
+|---------|----------|--------|
+| App Settings | `%APPDATA%\EZRClone\appsettings.json` | JSON |
+| RClone Config | Auto-detected or user-specified | INI |
+| Jobs | `%APPDATA%\EZRClone\jobs.json` | JSON |
 
-- **Sync/Copy Job Builder** — GUI to construct `rclone sync`/`copy` commands with source, destination, and flags
+---
+
+## 9. Future Considerations
+
+These are **out of scope** for the current release but inform architectural decisions:
+
 - **Job Monitoring** — Real-time transfer progress with `--progress` output parsing
 - **Job Scheduling** — Recurring sync jobs via Windows Task Scheduler integration
 - **Mount Manager** — Mount remotes as drive letters via `rclone mount`
