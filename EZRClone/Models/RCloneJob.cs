@@ -11,13 +11,13 @@ public class RCloneJob
     public string DestinationPath { get; set; } = string.Empty;
     public bool DestinationIsRemote { get; set; }
     public string? DestinationRemoteName { get; set; }
-    
+
     // Common options
     public int Transfers { get; set; } = 4;
     public bool CreateLogFile { get; set; } = true;
     public string? LogFilePath { get; set; }
     public RCloneVerbosity Verbosity { get; set; } = RCloneVerbosity.Normal;
-    
+
     // Filtering options
     public List<string> IncludePatterns { get; set; } = new();
     public List<string> ExcludePatterns { get; set; } = new();
@@ -35,11 +35,11 @@ public class RCloneJob
             ? new List<string>()
             : value.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
     }
-    
+
     // Scheduling (for future use)
     public bool IsScheduled { get; set; }
     public string? ScheduleCron { get; set; }
-    
+
     // Status
     public DateTime? LastRun { get; set; }
     public RCloneJobStatus LastStatus { get; set; } = RCloneJobStatus.NotRun;

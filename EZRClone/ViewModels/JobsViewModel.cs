@@ -50,7 +50,7 @@ public partial class JobsViewModel : ObservableObject
         _processService = processService;
         _settingsService = settingsService;
         _batchImportService = batchImportService;
-        
+
         _ = LoadJobsAsync();
         _ = LoadRemotesAsync();
     }
@@ -115,7 +115,7 @@ public partial class JobsViewModel : ObservableObject
     private void EditJob()
     {
         if (SelectedJob == null) return;
-        
+
         // Create a copy to edit
         EditingJob = new RCloneJob
         {
@@ -153,10 +153,10 @@ public partial class JobsViewModel : ObservableObject
         {
             Jobs.Remove(existingJob);
         }
-        
+
         Jobs.Add(EditingJob);
         await _jobStorageService.SaveJobsAsync(Jobs.ToList());
-        
+
         SelectedJob = EditingJob;
         IsEditing = false;
         OnPropertyChanged(nameof(HasJobs));
@@ -174,7 +174,7 @@ public partial class JobsViewModel : ObservableObject
     private async Task DeleteJobAsync()
     {
         if (SelectedJob == null) return;
-        
+
         Jobs.Remove(SelectedJob);
         OnPropertyChanged(nameof(HasJobs));
         await _jobStorageService.SaveJobsAsync(Jobs.ToList());

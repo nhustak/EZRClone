@@ -12,7 +12,7 @@
     <UserControl.Resources>
         <converters:InverseBoolToVisConverter x:Key="InverseBoolToVis"/>
     </UserControl.Resources>
-    
+
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -62,7 +62,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- Job List -->
-            <Border Grid.Column="0" BorderBrush="{DynamicResource BorderBrush}" 
+            <Border Grid.Column="0" BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" Margin="0,0,10,0"
                     Background="{DynamicResource BackgroundSecondaryBrush}">
                 <Grid>
@@ -114,7 +114,7 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                    
+
                     <!-- Empty state -->
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <StackPanel.Style>
@@ -263,7 +263,7 @@
                             </Style.Triggers>
                         </Style>
                     </ScrollViewer.Style>
-                    
+
                     <StackPanel DataContext="{Binding EditingJob}">
                         <TextBlock Text="✏️ Edit Job" FontSize="20" FontWeight="SemiBold"
                                    Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,20"/>
@@ -291,10 +291,10 @@
                         <!-- Source -->
                         <TextBlock Text="Source" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,10"/>
-                        
+
                         <CheckBox Content="Source is remote" IsChecked="{Binding SourceIsRemote}"
                                   Margin="0,0,0,10"/>
-                        
+
                         <TextBlock Text="Remote Name" FontSize="12" FontWeight="SemiBold"
                                    Foreground="{DynamicResource ForegroundSecondaryBrush}">
                             <TextBlock.Style>
