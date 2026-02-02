@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EZRClone.Models;
 using EZRClone.Services;
+using Microsoft.Win32;
 
 namespace EZRClone.ViewModels;
 
@@ -184,6 +186,109 @@ public partial class BrowseViewModel : ObservableObject
         var lastSlash = trimmed.LastIndexOf('/');
         CurrentPath = lastSlash >= 0 ? trimmed[..lastSlash] + "/" : "";
         await LoadDirectoryAsync(CurrentPath);
+    }
+
+    [RelayCommand]
+    private async Task DownloadItemAsync(RemoteItem item)
+    {
+        if (SelectedRemote == null) return;
+
+        var settings = _settingsService.Load();
+        var downloadPath = settings.DefaultDownloadPath;
+
+        if (string.IsNullOrWhiteSpace(downloadPath))
+        {
+            var dialog = new OpenFolderDialog { Title = "Select download folder" };
+            if (dialog.ShowDialog() != true) return;
+            downloadPath = dialog.FolderName;
+        }
+
+        await DownloadToPathAsync(item, downloadPath);
+    }
+
+    [RelayCommand]
+    private async Task DownloadItemToAsync(RemoteItem item)
+    {
+        if (SelectedRemote == null) return;
+
+        var settings = _settingsService.Load();
+        var dialog = new OpenFolderDialog
+        {
+            Title = "Select download folder",
+            InitialDirectory = string.IsNullOrWhiteSpace(settings.DefaultDownloadPath)
+                ? null : settings.DefaultDownloadPath
+        };
+        if (dialog.ShowDialog() != true) return;
+
+        await DownloadToPathAsync(item, dialog.FolderName);
+    }
+
+    private async Task DownloadToPathAsync(RemoteItem item, string localPath)
+    {
+        var remotePath = $"{SelectedRemote}:{item.Path}";
+        var command = item.IsDirectory ? "copy" : "copyto";
+        var localTarget = item.IsDirectory
+            ? System.IO.Path.Combine(localPath, item.Name)
+            : System.IO.Path.Combine(localPath, item.Name);
+
+        var args = item.IsDirectory
+            ? new List<string> { "copy", remotePath, localTarget }
+            : new List<string> { "copyto", remotePath, localTarget };
+
+        StatusMessage = $"Downloading {item.Name}...";
+        try
+        {
+            var (exitCode, _, error) = await _processService.ExecuteAsync(args);
+            StatusMessage = exitCode == 0
+                ? $"Downloaded {item.Name} to {localPath}"
+                : $"Download failed: {error}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Download error: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteItemAsync(RemoteItem item)
+    {
+        if (SelectedRemote == null) return;
+
+        var typeLabel = item.IsDirectory ? "directory" : "file";
+        var result = MessageBox.Show(
+            $"Delete {typeLabel} '{item.Name}'?\n\nThis cannot be undone.",
+            "Confirm Delete",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        var remotePath = $"{SelectedRemote}:{item.Path}";
+        var args = item.IsDirectory
+            ? new List<string> { "purge", remotePath }
+            : new List<string> { "deletefile", remotePath };
+
+        StatusMessage = $"Deleting {item.Name}...";
+        try
+        {
+            var (exitCode, _, error) = await _processService.ExecuteAsync(args);
+            if (exitCode == 0)
+            {
+                Items.Remove(item);
+                // Invalidate cache for current path
+                var cacheKey = $"{SelectedRemote}:{CurrentPath}";
+                _cache.Remove(cacheKey);
+                StatusMessage = $"Deleted {item.Name}";
+            }
+            else
+            {
+                StatusMessage = $"Delete failed: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Delete error: {ex.Message}";
+        }
     }
 
     private async Task LoadDirectoryAsync(string path)

@@ -17,6 +17,9 @@ public partial class SettingsViewModel : ObservableObject
     private string _rCloneConfigPath = string.Empty;
 
     [ObservableProperty]
+    private string _defaultDownloadPath = string.Empty;
+
+    [ObservableProperty]
     private string _validationMessage = string.Empty;
 
     [ObservableProperty]
@@ -34,6 +37,7 @@ public partial class SettingsViewModel : ObservableObject
         var settings = _settingsService.Load();
         RCloneExePath = settings.RCloneExePath;
         RCloneConfigPath = settings.RCloneConfigPath;
+        DefaultDownloadPath = settings.DefaultDownloadPath;
     }
 
     [RelayCommand]
@@ -83,7 +87,8 @@ public partial class SettingsViewModel : ObservableObject
         var settings = new AppSettings
         {
             RCloneExePath = RCloneExePath.Trim(),
-            RCloneConfigPath = RCloneConfigPath.Trim()
+            RCloneConfigPath = RCloneConfigPath.Trim(),
+            DefaultDownloadPath = DefaultDownloadPath.Trim()
         };
 
         _processService.RCloneExePath = settings.RCloneExePath;

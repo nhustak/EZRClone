@@ -57,6 +57,22 @@
                    Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"
                    Margin="0,0,0,24" />
 
+        <!-- Default download path -->
+        <TextBlock Text="Default Download Path:" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,6" />
+        <Grid Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox Text="{Binding DefaultDownloadPath, UpdateSourceTrigger=PropertyChanged}"
+                     Padding="6,4" />
+            <Button Grid.Column="1" Content="Browse..."
+                    Click="OnBrowseDownloadPath" Margin="8,0,0,0" />
+        </Grid>
+        <TextBlock Text="Default folder for downloads from Browse. You can override per download."
+                   Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"
+                   Margin="0,0,0,24" />
+
         <!-- Save -->
         <Button Content="Save" Style="{DynamicResource AccentButton}"
                 Command="{Binding SaveCommand}" HorizontalAlignment="Left" />

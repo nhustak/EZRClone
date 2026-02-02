@@ -49,4 +49,17 @@ public partial class SettingsView : UserControl
             vm.RCloneConfigPath = dialog.FileName;
         }
     }
+
+    private void OnBrowseDownloadPath(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = "Select default download folder"
+        };
+
+        if (dialog.ShowDialog() == true && DataContext is SettingsViewModel vm)
+        {
+            vm.DefaultDownloadPath = dialog.FolderName;
+        }
+    }
 }

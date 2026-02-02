@@ -10,6 +10,7 @@
              Background="{DynamicResource BackgroundBrush}">
     <UserControl.Resources>
         <converters:InverseBoolToVisConverter x:Key="InverseBoolToVis"/>
+        <converters:BindingProxy x:Key="ViewModelProxy" Data="{Binding}"/>
     </UserControl.Resources>
 
     <Grid Margin="20">
@@ -123,6 +124,22 @@
                     <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
                     <Setter Property="Background" Value="Transparent"/>
                     <Setter Property="Padding" Value="4,2"/>
+                    <Setter Property="ContextMenu">
+                        <Setter.Value>
+                            <ContextMenu>
+                                <MenuItem Header="Download"
+                                          Command="{Binding Data.DownloadItemCommand, Source={StaticResource ViewModelProxy}}"
+                                          CommandParameter="{Binding}"/>
+                                <MenuItem Header="Download to..."
+                                          Command="{Binding Data.DownloadItemToCommand, Source={StaticResource ViewModelProxy}}"
+                                          CommandParameter="{Binding}"/>
+                                <Separator/>
+                                <MenuItem Header="Delete"
+                                          Command="{Binding Data.DeleteItemCommand, Source={StaticResource ViewModelProxy}}"
+                                          CommandParameter="{Binding}"/>
+                            </ContextMenu>
+                        </Setter.Value>
+                    </Setter>
                     <Style.Triggers>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter Property="Background" Value="#50338AFF"/>
