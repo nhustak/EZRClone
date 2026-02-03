@@ -20,19 +20,22 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly JobsViewModel _jobsViewModel;
     private readonly LogViewModel _logViewModel;
     private readonly BrowseViewModel _browseViewModel;
+    private readonly SearchViewModel _searchViewModel;
 
     public MainWindowViewModel(
         ConfigViewModel configViewModel,
         SettingsViewModel settingsViewModel,
         JobsViewModel jobsViewModel,
         LogViewModel logViewModel,
-        BrowseViewModel browseViewModel)
+        BrowseViewModel browseViewModel,
+        SearchViewModel searchViewModel)
     {
         _configViewModel = configViewModel;
         _settingsViewModel = settingsViewModel;
         _jobsViewModel = jobsViewModel;
         _logViewModel = logViewModel;
         _browseViewModel = browseViewModel;
+        _searchViewModel = searchViewModel;
 
         CurrentView = _configViewModel;
     }
@@ -47,6 +50,7 @@ public partial class MainWindowViewModel : ObservableObject
             "Settings" => _settingsViewModel,
             "Jobs" => _jobsViewModel,
             "Browse" => _browseViewModel,
+            "Search" => _searchViewModel,
             "Log" => _logViewModel,
             _ => _configViewModel
         };

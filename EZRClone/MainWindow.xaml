@@ -21,6 +21,11 @@
                 <TextBlock DockPanel.Dock="Bottom" Text="{Binding VersionText}"
                            FontSize="9" Foreground="{DynamicResource ForegroundSecondaryBrush}"
                            HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                <RadioButton DockPanel.Dock="Bottom" Style="{DynamicResource NavButtonStyle}"
+                             Content="&#xE713;"
+                             Tag="Settings"
+                             Command="{Binding NavigateCommand}"
+                             CommandParameter="Settings" />
                 <StackPanel VerticalAlignment="Top">
                     <RadioButton Style="{DynamicResource NavButtonStyle}"
                                  Content="&#xE8B7;"
@@ -28,11 +33,6 @@
                                  IsChecked="True"
                                  Command="{Binding NavigateCommand}"
                                  CommandParameter="Config" />
-                    <RadioButton Style="{DynamicResource NavButtonStyle}"
-                                 Content="&#xE713;"
-                                 Tag="Settings"
-                                 Command="{Binding NavigateCommand}"
-                                 CommandParameter="Settings" />
                     <RadioButton Style="{DynamicResource NavButtonStyle}"
                                  Content="&#xE895;"
                                  Tag="Jobs"
@@ -43,6 +43,11 @@
                                  Tag="Browse"
                                  Command="{Binding NavigateCommand}"
                                  CommandParameter="Browse" />
+                    <RadioButton Style="{DynamicResource NavButtonStyle}"
+                                 Content="&#xE721;"
+                                 Tag="Search"
+                                 Command="{Binding NavigateCommand}"
+                                 CommandParameter="Search" />
                     <RadioButton Style="{DynamicResource NavButtonStyle}"
                                  Content="&#xE9D5;"
                                  Tag="Log"

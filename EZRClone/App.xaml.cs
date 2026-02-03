@@ -28,6 +28,7 @@ public partial class App : Application
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<JobsViewModel>();
         services.AddSingleton<BrowseViewModel>();
+        services.AddSingleton<SearchViewModel>();
         services.AddSingleton<LogViewModel>();
 
         // Window

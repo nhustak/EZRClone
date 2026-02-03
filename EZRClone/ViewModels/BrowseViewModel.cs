@@ -188,10 +188,9 @@ public partial class BrowseViewModel : ObservableObject
         await LoadDirectoryAsync(CurrentPath);
     }
 
-    [RelayCommand]
-    private async Task DownloadItemAsync(RemoteItem item)
+    public async Task DownloadItemsAsync(IList<RemoteItem> items)
     {
-        if (SelectedRemote == null) return;
+        if (SelectedRemote == null || items.Count == 0) return;
 
         var settings = _settingsService.Load();
         var downloadPath = settings.DefaultDownloadPath;
@@ -203,13 +202,12 @@ public partial class BrowseViewModel : ObservableObject
             downloadPath = dialog.FolderName;
         }
 
-        await DownloadToPathAsync(item, downloadPath);
+        await DownloadMultipleAsync(items, downloadPath);
     }
 
-    [RelayCommand]
-    private async Task DownloadItemToAsync(RemoteItem item)
+    public async Task DownloadItemsToAsync(IList<RemoteItem> items)
     {
-        if (SelectedRemote == null) return;
+        if (SelectedRemote == null || items.Count == 0) return;
 
         var settings = _settingsService.Load();
         var dialog = new OpenFolderDialog
@@ -220,75 +218,92 @@ public partial class BrowseViewModel : ObservableObject
         };
         if (dialog.ShowDialog() != true) return;
 
-        await DownloadToPathAsync(item, dialog.FolderName);
+        await DownloadMultipleAsync(items, dialog.FolderName);
     }
 
-    private async Task DownloadToPathAsync(RemoteItem item, string localPath)
+    private async Task DownloadMultipleAsync(IList<RemoteItem> items, string localPath)
     {
-        var remotePath = $"{SelectedRemote}:{item.Path}";
-        var command = item.IsDirectory ? "copy" : "copyto";
-        var localTarget = item.IsDirectory
-            ? System.IO.Path.Combine(localPath, item.Name)
-            : System.IO.Path.Combine(localPath, item.Name);
+        var completed = 0;
+        var failed = 0;
 
-        var args = item.IsDirectory
-            ? new List<string> { "copy", remotePath, localTarget }
-            : new List<string> { "copyto", remotePath, localTarget };
+        foreach (var item in items)
+        {
+            var remotePath = $"{SelectedRemote}:{item.Path}";
+            var localTarget = System.IO.Path.Combine(localPath, item.Name);
 
-        StatusMessage = $"Downloading {item.Name}...";
-        try
-        {
-            var (exitCode, _, error) = await _processService.ExecuteAsync(args);
-            StatusMessage = exitCode == 0
-                ? $"Downloaded {item.Name} to {localPath}"
-                : $"Download failed: {error}";
+            var args = item.IsDirectory
+                ? new List<string> { "copy", remotePath, localTarget }
+                : new List<string> { "copyto", remotePath, localTarget };
+
+            StatusMessage = $"Downloading {item.Name}... ({completed + 1}/{items.Count})";
+            try
+            {
+                var (exitCode, _, error) = await _processService.ExecuteAsync(args);
+                if (exitCode == 0) completed++;
+                else failed++;
+            }
+            catch
+            {
+                failed++;
+            }
         }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Download error: {ex.Message}";
-        }
+
+        StatusMessage = failed == 0
+            ? $"Downloaded {completed} item{(completed != 1 ? "s" : "")} to {localPath}"
+            : $"Downloaded {completed}, failed {failed} of {items.Count}";
     }
 
-    [RelayCommand]
-    private async Task DeleteItemAsync(RemoteItem item)
+    public async Task DeleteItemsAsync(IList<RemoteItem> items)
     {
-        if (SelectedRemote == null) return;
+        if (SelectedRemote == null || items.Count == 0) return;
 
-        var typeLabel = item.IsDirectory ? "directory" : "file";
+        var label = items.Count == 1
+            ? $"{(items[0].IsDirectory ? "directory" : "file")} '{items[0].Name}'"
+            : $"{items.Count} items";
         var result = MessageBox.Show(
-            $"Delete {typeLabel} '{item.Name}'?\n\nThis cannot be undone.",
+            $"Delete {label}?\n\nThis cannot be undone.",
             "Confirm Delete",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
 
         if (result != MessageBoxResult.Yes) return;
 
-        var remotePath = $"{SelectedRemote}:{item.Path}";
-        var args = item.IsDirectory
-            ? new List<string> { "purge", remotePath }
-            : new List<string> { "deletefile", remotePath };
+        var completed = 0;
+        var failed = 0;
 
-        StatusMessage = $"Deleting {item.Name}...";
-        try
+        foreach (var item in items)
         {
-            var (exitCode, _, error) = await _processService.ExecuteAsync(args);
-            if (exitCode == 0)
+            var remotePath = $"{SelectedRemote}:{item.Path}";
+            var args = item.IsDirectory
+                ? new List<string> { "purge", remotePath }
+                : new List<string> { "deletefile", remotePath };
+
+            StatusMessage = $"Deleting {item.Name}... ({completed + failed + 1}/{items.Count})";
+            try
             {
-                Items.Remove(item);
-                // Invalidate cache for current path
-                var cacheKey = $"{SelectedRemote}:{CurrentPath}";
-                _cache.Remove(cacheKey);
-                StatusMessage = $"Deleted {item.Name}";
+                var (exitCode, _, _) = await _processService.ExecuteAsync(args);
+                if (exitCode == 0)
+                {
+                    Items.Remove(item);
+                    completed++;
+                }
+                else
+                {
+                    failed++;
+                }
             }
-            else
+            catch
             {
-                StatusMessage = $"Delete failed: {error}";
+                failed++;
             }
         }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Delete error: {ex.Message}";
-        }
+
+        var cacheKey = $"{SelectedRemote}:{CurrentPath}";
+        _cache.Remove(cacheKey);
+
+        StatusMessage = failed == 0
+            ? $"Deleted {completed} item{(completed != 1 ? "s" : "")}"
+            : $"Deleted {completed}, failed {failed} of {items.Count}";
     }
 
     private async Task LoadDirectoryAsync(string path)
@@ -328,6 +343,13 @@ public partial class BrowseViewModel : ObservableObject
             var status = items.Count == 0 ? "Empty directory" : $"{items.Count} item{(items.Count != 1 ? "s" : "")}";
             StatusMessage = status;
             _cache[cacheKey] = (items, status);
+
+            // Auto-fetch directory info if setting is enabled
+            var settings = _settingsService.Load();
+            if (settings.AlwaysGetDirectoryInfo && items.Any(i => i.IsDirectory))
+            {
+                _ = GetDirectoryInfoAsync();
+            }
         }
         catch (Exception ex)
         {

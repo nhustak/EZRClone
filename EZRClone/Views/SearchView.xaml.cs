@@ -1,28 +1,18 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using EZRClone.Helpers;
 using EZRClone.Models;
 using EZRClone.ViewModels;
 
 namespace EZRClone.Views;
 
-public partial class BrowseView : UserControl
+public partial class SearchView : UserControl
 {
     private readonly ListViewSortHelper _sortHelper = new();
 
-    public BrowseView()
+    public SearchView()
     {
         InitializeComponent();
-    }
-
-    private void OnItemDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is ListViewItem { Content: RemoteItem { IsDirectory: true } item }
-            && DataContext is BrowseViewModel vm)
-        {
-            vm.NavigateToCommand.Execute(item);
-        }
     }
 
     private void OnColumnHeaderClick(object sender, RoutedEventArgs e)
@@ -31,23 +21,23 @@ public partial class BrowseView : UserControl
     }
 
     private List<RemoteItem> GetSelectedItems() =>
-        FileListView.SelectedItems.Cast<RemoteItem>().ToList();
+        ResultsListView.SelectedItems.Cast<RemoteItem>().ToList();
 
     private void OnDownloadClick(object sender, RoutedEventArgs e)
     {
-        if (DataContext is BrowseViewModel vm)
+        if (DataContext is SearchViewModel vm)
             _ = vm.DownloadItemsAsync(GetSelectedItems());
     }
 
     private void OnDownloadToClick(object sender, RoutedEventArgs e)
     {
-        if (DataContext is BrowseViewModel vm)
+        if (DataContext is SearchViewModel vm)
             _ = vm.DownloadItemsToAsync(GetSelectedItems());
     }
 
     private void OnDeleteClick(object sender, RoutedEventArgs e)
     {
-        if (DataContext is BrowseViewModel vm)
+        if (DataContext is SearchViewModel vm)
             _ = vm.DeleteItemsAsync(GetSelectedItems());
     }
 }

@@ -20,6 +20,9 @@ public partial class SettingsViewModel : ObservableObject
     private string _defaultDownloadPath = string.Empty;
 
     [ObservableProperty]
+    private bool _alwaysGetDirectoryInfo;
+
+    [ObservableProperty]
     private string _validationMessage = string.Empty;
 
     [ObservableProperty]
@@ -38,6 +41,7 @@ public partial class SettingsViewModel : ObservableObject
         RCloneExePath = settings.RCloneExePath;
         RCloneConfigPath = settings.RCloneConfigPath;
         DefaultDownloadPath = settings.DefaultDownloadPath;
+        AlwaysGetDirectoryInfo = settings.AlwaysGetDirectoryInfo;
     }
 
     [RelayCommand]
@@ -88,7 +92,8 @@ public partial class SettingsViewModel : ObservableObject
         {
             RCloneExePath = RCloneExePath.Trim(),
             RCloneConfigPath = RCloneConfigPath.Trim(),
-            DefaultDownloadPath = DefaultDownloadPath.Trim()
+            DefaultDownloadPath = DefaultDownloadPath.Trim(),
+            AlwaysGetDirectoryInfo = AlwaysGetDirectoryInfo
         };
 
         _processService.RCloneExePath = settings.RCloneExePath;

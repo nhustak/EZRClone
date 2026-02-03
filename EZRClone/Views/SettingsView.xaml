@@ -73,6 +73,16 @@
                    Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"
                    Margin="0,0,0,24" />
 
+        <!-- Always get directory info -->
+        <CheckBox Content="Always get directory info when browsing"
+                  IsChecked="{Binding AlwaysGetDirectoryInfo}"
+                  Foreground="{DynamicResource ForegroundBrush}"
+                  Margin="0,0,0,6" />
+        <TextBlock Text="Automatically fetch recursive file counts and sizes for directories. Can be slow on large remotes."
+                   Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,24" />
+
         <!-- Save -->
         <Button Content="Save" Style="{DynamicResource AccentButton}"
                 Command="{Binding SaveCommand}" HorizontalAlignment="Left" />
