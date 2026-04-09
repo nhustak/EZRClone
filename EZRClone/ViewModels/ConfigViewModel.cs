@@ -43,6 +43,9 @@ public partial class ConfigViewModel : ObservableObject
     [ObservableProperty]
     private bool _isNewRemote;
 
+    [ObservableProperty]
+    private bool _isConfigPathReady = true;
+
     public List<RCloneBackendType> BackendTypes { get; } = RCloneBackendType.GetKnownTypes();
 
     public Action<string>? NavigateToRemoteBrowse { get; set; }
@@ -64,7 +67,7 @@ public partial class ConfigViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void LoadRemotes()
+    private async Task LoadRemotes()
     {
         var settings = _settingsService.Load();
         ConfigFilePath = settings.RCloneConfigPath;
@@ -72,9 +75,14 @@ public partial class ConfigViewModel : ObservableObject
         if (!EnsureConfigPathReady())
             return;
 
+        StatusMessage = "Loading remotes...";
+
+        var remotes = await Task.Run(() =>
+            _configService.ReadConfig(ConfigFilePath)
+                .OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList());
+
         Remotes.Clear();
-        var remotes = _configService.ReadConfig(ConfigFilePath)
-            .OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase);
         foreach (var remote in remotes)
             Remotes.Add(remote);
 
@@ -234,11 +242,12 @@ public partial class ConfigViewModel : ObservableObject
 
         if (string.IsNullOrWhiteSpace(ConfigFilePath) || !File.Exists(ConfigFilePath))
         {
-            StatusMessage = "Config file path is missing or invalid. Update it in Settings.";
-            NavigateToSettings?.Invoke();
+            IsConfigPathReady = false;
+            StatusMessage = "Config file path is missing or invalid. Set it in App Settings, then refresh.";
             return false;
         }
 
+        IsConfigPathReady = true;
         return true;
     }
 

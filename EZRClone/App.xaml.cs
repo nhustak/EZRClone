@@ -1,5 +1,6 @@
 using System.Windows;
 using System.IO;
+using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using EZRClone.Services;
 using EZRClone.ViewModels;
@@ -14,95 +15,91 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        var services = new ServiceCollection();
-
-        // Services
-        services.AddSingleton<IAppSettingsService, AppSettingsService>();
-        services.AddSingleton<IRCloneConfigService, RCloneConfigService>();
-        services.AddSingleton<IRCloneProcessService, RCloneProcessService>();
-        services.AddSingleton<IJobStorageService, JobStorageService>();
-        services.AddSingleton<IBatchImportService, BatchImportService>();
-        services.AddSingleton<IAppLogService, AppLogService>();
-
-        // ViewModels
-        services.AddSingleton<MainWindowViewModel>();
-        services.AddSingleton<ConfigViewModel>();
-        services.AddSingleton<SettingsViewModel>();
-        services.AddSingleton<JobsViewModel>();
-        services.AddSingleton<BrowseViewModel>();
-        services.AddSingleton<SearchViewModel>();
-        services.AddSingleton<LogViewModel>();
-
-        // Window
-        services.AddSingleton<MainWindow>();
-
-        _serviceProvider = services.BuildServiceProvider();
-
-        // Load settings and configure process service
-        var settingsService = _serviceProvider.GetRequiredService<IAppSettingsService>();
-        var processService = _serviceProvider.GetRequiredService<IRCloneProcessService>();
-        var logService = _serviceProvider.GetRequiredService<IAppLogService>();
-        var settings = settingsService.Load();
-        processService.RCloneExePath = settings.RCloneExePath;
-        processService.RCloneConfigPath = settings.RCloneConfigPath;
-        logService.LoadRunHistoryAsync().GetAwaiter().GetResult();
-
-        // Wire up Config → Browse navigation
-        var configVm = _serviceProvider.GetRequiredService<ConfigViewModel>();
-        var browseVm = _serviceProvider.GetRequiredService<BrowseViewModel>();
-        var jobsVm = _serviceProvider.GetRequiredService<JobsViewModel>();
-        var logVm = _serviceProvider.GetRequiredService<LogViewModel>();
-        var mainVm = _serviceProvider.GetRequiredService<MainWindowViewModel>();
-        configVm.NavigateToRemoteBrowse = remoteName =>
+        try
         {
-            browseVm.SelectedRemote = remoteName;
-            mainVm.NavigateCommand.Execute("Browse");
-        };
-        configVm.NavigateToSettings = mainVm.NavigateToSettings;
-        jobsVm.OpenJobHistoryRequested = jobId =>
-        {
-            logVm.FocusJobHistory(jobId);
-            mainVm.NavigateToLog();
-        };
+            var services = new ServiceCollection();
 
-        if (settings.StartupValidationEnabled)
-        {
-            var warnings = new List<string>();
-            if (string.IsNullOrWhiteSpace(settings.RCloneExePath) || !File.Exists(settings.RCloneExePath))
-                warnings.Add("rclone.exe path is missing or invalid");
-            if (string.IsNullOrWhiteSpace(settings.RCloneConfigPath) || !File.Exists(settings.RCloneConfigPath))
-                warnings.Add("rclone.conf path is missing or invalid");
+            services.AddSingleton<IAppSettingsService, AppSettingsService>();
+            services.AddSingleton<IRCloneConfigService, RCloneConfigService>();
+            services.AddSingleton<IRCloneProcessService, RCloneProcessService>();
+            services.AddSingleton<IJobStorageService, JobStorageService>();
+            services.AddSingleton<IBatchImportService, BatchImportService>();
+            services.AddSingleton<IAppLogService, AppLogService>();
 
-            if (warnings.Count > 0)
+            services.AddSingleton<MainWindowViewModel>();
+            services.AddSingleton<ConfigViewModel>();
+            services.AddSingleton<SettingsViewModel>();
+            services.AddSingleton<JobsViewModel>();
+            services.AddSingleton<BrowseViewModel>();
+            services.AddSingleton<SearchViewModel>();
+            services.AddSingleton<LogViewModel>();
+
+            services.AddSingleton<MainWindow>();
+
+            _serviceProvider = services.BuildServiceProvider();
+
+            var settingsService = _serviceProvider.GetRequiredService<IAppSettingsService>();
+            var processService = _serviceProvider.GetRequiredService<IRCloneProcessService>();
+            var logService = _serviceProvider.GetRequiredService<IAppLogService>();
+            var settings = settingsService.Load();
+            processService.RCloneExePath = settings.RCloneExePath;
+            processService.RCloneConfigPath = settings.RCloneConfigPath;
+
+            var configVm = _serviceProvider.GetRequiredService<ConfigViewModel>();
+            var browseVm = _serviceProvider.GetRequiredService<BrowseViewModel>();
+            var jobsVm = _serviceProvider.GetRequiredService<JobsViewModel>();
+            var logVm = _serviceProvider.GetRequiredService<LogViewModel>();
+            var mainVm = _serviceProvider.GetRequiredService<MainWindowViewModel>();
+            configVm.NavigateToRemoteBrowse = remoteName =>
             {
-                var message = $"Startup validation found issues: {string.Join("; ", warnings)}.";
-                mainVm.ShowAppWarning(message);
-                mainVm.NavigateToSettings();
-                logService.AddSessionEntry(new Models.AppLogEntry
-                {
-                    Severity = Models.AppLogSeverity.Warning,
-                    Category = "Startup",
-                    Message = message
-                });
-            }
-            else
+                browseVm.SelectedRemote = remoteName;
+                mainVm.NavigateCommand.Execute("Browse");
+            };
+            jobsVm.OpenJobHistoryRequested = jobId =>
             {
-                logService.AddSessionEntry(new Models.AppLogEntry
-                {
-                    Category = "Startup",
-                    Message = "Startup validation passed."
-                });
-            }
+                logVm.FocusJobHistory(jobId);
+                mainVm.NavigateToLog();
+            };
+
+            var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+            mainWindow.DataContext = _serviceProvider.GetRequiredService<MainWindowViewModel>();
+            mainWindow.Show();
+
+            mainWindow.Dispatcher.BeginInvoke(
+                new Action(() => configVm.LoadRemotesCommand.Execute(null)),
+                DispatcherPriority.ContextIdle);
+
+            _ = logService.LoadRunHistoryAsync();
         }
-
-        var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-        mainWindow.DataContext = _serviceProvider.GetRequiredService<MainWindowViewModel>();
-        mainWindow.Show();
+        catch (Exception ex)
+        {
+            WriteStartupFailure(ex);
+            MessageBox.Show(
+                $"EZRClone failed to start.{Environment.NewLine}{Environment.NewLine}{ex.Message}{Environment.NewLine}{Environment.NewLine}A startup error log was written beside the app.",
+                "EZRClone Startup Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(-1);
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         _serviceProvider?.Dispose();
         base.OnExit(e);
+    }
+
+    private static void WriteStartupFailure(Exception ex)
+    {
+        try
+        {
+            var logPath = Path.Combine(AppContext.BaseDirectory, "EZRClone-startup-error.txt");
+            var content = $"{DateTime.Now:u}{Environment.NewLine}{ex}{Environment.NewLine}";
+            File.WriteAllText(logPath, content);
+        }
+        catch
+        {
+            // Best effort only.
+        }
     }
 }

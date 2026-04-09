@@ -8,10 +8,23 @@
              d:DataContext="{d:DesignInstance vm:SettingsViewModel}"
              Loaded="OnLoaded"
              Background="{DynamicResource BackgroundBrush}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="24" MaxWidth="600" HorizontalAlignment="Left">
-        <TextBlock Text="Application Settings" FontSize="22" FontWeight="SemiBold"
-                   Foreground="{DynamicResource ForegroundBrush}"
-                   Margin="0,0,0,24" />
+        <Grid Margin="0,0,0,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Application Settings" FontSize="22" FontWeight="SemiBold"
+                       Foreground="{DynamicResource ForegroundBrush}"
+                       VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Content="Test Settings" Margin="0,0,10,0"
+                        Command="{Binding TestSettingsCommand}" HorizontalAlignment="Left" />
+                <Button Content="Save Settings" Style="{DynamicResource AccentButton}"
+                        Command="{Binding SaveCommand}" HorizontalAlignment="Left" />
+            </StackPanel>
+        </Grid>
         <Border Background="{DynamicResource SurfaceBrush}" Padding="10" Margin="0,0,0,20" CornerRadius="3">
             <TextBlock Text="Use this screen to set the rclone executable path and the single rclone.conf file that EZRClone should use for tests, browse, search, and jobs."
                        TextWrapping="Wrap"
@@ -61,7 +74,7 @@
             <Button Grid.Column="1" Content="Override..."
                     Click="OnBrowseConfig" Margin="8,0,0,0" />
         </Grid>
-        <TextBlock Text="This is the config file used by all live rclone commands in the app. Leave blank to auto-detect from rclone."
+        <TextBlock Text="This is the config file used by all live rclone commands in the app. Leave it blank and Save Settings to auto-detect and store the real path."
                    Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"
                    Margin="0,0,0,24" />
         <TextBlock Text="{Binding ConfigValidationMessage}" FontSize="11"
@@ -93,11 +106,6 @@
                    TextWrapping="Wrap"
                    Margin="0,0,0,24" />
 
-        <CheckBox Content="Validate settings on startup"
-                  IsChecked="{Binding StartupValidationEnabled}"
-                  Foreground="{DynamicResource ForegroundBrush}"
-                  Margin="0,0,0,6" />
-
         <CheckBox Content="Default delete jobs to dry run"
                   IsChecked="{Binding DefaultDeleteDryRun}"
                   Foreground="{DynamicResource ForegroundBrush}"
@@ -113,8 +121,9 @@
                     Command="{Binding ValidateCommand}" HorizontalAlignment="Left" />
             <Button Content="Test Settings" Margin="0,0,10,0"
                     Command="{Binding TestSettingsCommand}" HorizontalAlignment="Left" />
-            <Button Content="Save" Style="{DynamicResource AccentButton}"
+            <Button Content="Save Settings" Style="{DynamicResource AccentButton}"
                     Command="{Binding SaveCommand}" HorizontalAlignment="Left" />
         </StackPanel>
     </StackPanel>
+    </ScrollViewer>
 </UserControl>

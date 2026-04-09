@@ -24,9 +24,6 @@ public partial class SettingsViewModel : ObservableObject
     private bool _alwaysGetDirectoryInfo;
 
     [ObservableProperty]
-    private bool _startupValidationEnabled = true;
-
-    [ObservableProperty]
     private bool _defaultDeleteDryRun = true;
 
     [ObservableProperty]
@@ -58,7 +55,6 @@ public partial class SettingsViewModel : ObservableObject
         RCloneConfigPath = settings.RCloneConfigPath;
         DefaultDownloadPath = settings.DefaultDownloadPath;
         AlwaysGetDirectoryInfo = settings.AlwaysGetDirectoryInfo;
-        StartupValidationEnabled = settings.StartupValidationEnabled;
         DefaultDeleteDryRun = settings.DefaultDeleteDryRun;
     }
 
@@ -77,20 +73,96 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task Save()
     {
+        var resolvedExePath = RCloneExePath.Trim();
+        var resolvedConfigPath = RCloneConfigPath.Trim();
+
         var settings = new AppSettings
         {
-            RCloneExePath = RCloneExePath.Trim(),
-            RCloneConfigPath = RCloneConfigPath.Trim(),
+            RCloneExePath = resolvedExePath,
+            RCloneConfigPath = string.Empty,
             DefaultDownloadPath = DefaultDownloadPath.Trim(),
             AlwaysGetDirectoryInfo = AlwaysGetDirectoryInfo,
-            StartupValidationEnabled = StartupValidationEnabled,
+            StartupValidationEnabled = false,
             DefaultDeleteDryRun = DefaultDeleteDryRun
         };
 
-        _processService.RCloneExePath = settings.RCloneExePath;
-        _processService.RCloneConfigPath = settings.RCloneConfigPath;
         _settingsService.Save(settings);
+        _processService.RCloneExePath = resolvedExePath;
+
+        if (string.IsNullOrWhiteSpace(resolvedExePath))
+        {
+            ExecutableValidationMessage = "Executable path is empty.";
+            ConfigValidationMessage = "Config path could not be resolved because the executable path is empty.";
+            RemoteValidationMessage = "Remote sanity check skipped because the executable path is invalid.";
+            ValidationMessage = "Settings were saved, but rclone.exe is still required before config auto-detect can work.";
+            _processService.RCloneConfigPath = string.Empty;
+            IsValid = false;
+            return;
+        }
+
+        if (!File.Exists(resolvedExePath))
+        {
+            ExecutableValidationMessage = "Executable file was not found.";
+            ConfigValidationMessage = "Config path could not be resolved because the executable path is invalid.";
+            RemoteValidationMessage = "Remote sanity check skipped because the executable path is invalid.";
+            ValidationMessage = "Settings were saved, but the rclone.exe path is invalid.";
+            _processService.RCloneConfigPath = string.Empty;
+            IsValid = false;
+            return;
+        }
+
+        try
+        {
+            var version = await _processService.GetVersionAsync();
+            var firstLine = version.Split('\n').FirstOrDefault() ?? version;
+            ExecutableValidationMessage = $"Valid — {firstLine}";
+        }
+        catch (Exception ex)
+        {
+            ExecutableValidationMessage = $"Invalid — {ex.Message}";
+            ConfigValidationMessage = "Config path could not be resolved because the executable path is invalid.";
+            RemoteValidationMessage = "Remote sanity check skipped because the executable path is invalid.";
+            ValidationMessage = "Settings were saved, but rclone.exe could not be executed.";
+            _processService.RCloneConfigPath = string.Empty;
+            IsValid = false;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(resolvedConfigPath))
+        {
+            try
+            {
+                resolvedConfigPath = await ResolveConfigPathAsync();
+                RCloneConfigPath = resolvedConfigPath;
+                ConfigValidationMessage = $"Auto-detected and saved — {resolvedConfigPath}";
+            }
+            catch (Exception ex)
+            {
+                ConfigValidationMessage = $"Auto-detect failed — {ex.Message}";
+                RemoteValidationMessage = "Remote sanity check skipped because the config path could not be resolved.";
+                ValidationMessage = "Settings were saved, but Remotes and Jobs will not work until the config path can be resolved.";
+                _processService.RCloneConfigPath = string.Empty;
+                IsValid = false;
+                return;
+            }
+        }
+
+        if (!File.Exists(resolvedConfigPath))
+        {
+            ConfigValidationMessage = $"Config file was not found — {resolvedConfigPath}";
+            RemoteValidationMessage = "Remote sanity check skipped because the saved config path is invalid.";
+            ValidationMessage = "Settings were saved, but the config path is invalid.";
+            _processService.RCloneConfigPath = string.Empty;
+            IsValid = false;
+            return;
+        }
+
+        settings.RCloneConfigPath = resolvedConfigPath;
+        _processService.RCloneConfigPath = resolvedConfigPath;
+        _settingsService.Save(settings);
+
         await ValidateInternalAsync(includeRemoteCheck: true);
+        ValidationMessage = $"Settings were saved. Using config: {resolvedConfigPath}";
     }
 
     private async Task ValidateInternalAsync(bool includeRemoteCheck)
@@ -141,9 +213,7 @@ public partial class SettingsViewModel : ObservableObject
         {
             try
             {
-                var configPath = await _processService.GetConfigFilePathAsync();
-                var lines = configPath.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-                RCloneConfigPath = lines.LastOrDefault()?.Trim() ?? string.Empty;
+                RCloneConfigPath = await ResolveConfigPathAsync();
                 _processService.RCloneConfigPath = RCloneConfigPath;
             }
             catch (Exception ex)
@@ -198,5 +268,17 @@ public partial class SettingsViewModel : ObservableObject
         ValidationMessage = includeRemoteCheck
             ? "Settings are valid and ready to use."
             : "Executable and config path are valid.";
+    }
+
+    private async Task<string> ResolveConfigPathAsync()
+    {
+        var configPathOutput = await _processService.GetConfigFilePathAsync();
+        var lines = configPathOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var resolvedPath = lines.LastOrDefault()?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(resolvedPath))
+            throw new InvalidOperationException("rclone did not return a config file path.");
+
+        return resolvedPath;
     }
 }

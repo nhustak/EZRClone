@@ -16,6 +16,7 @@ public partial class JobsViewModel : ObservableObject
     private readonly IAppSettingsService _settingsService;
     private readonly IBatchImportService _batchImportService;
     private readonly IAppLogService _appLogService;
+    private bool _isInitialized;
 
     [ObservableProperty]
     private ObservableCollection<RCloneJob> _jobs = new();
@@ -56,9 +57,16 @@ public partial class JobsViewModel : ObservableObject
         _settingsService = settingsService;
         _batchImportService = batchImportService;
         _appLogService = appLogService;
+    }
 
-        _ = LoadJobsAsync();
-        _ = LoadRemotesAsync();
+    public async Task EnsureInitializedAsync()
+    {
+        if (_isInitialized)
+            return;
+
+        _isInitialized = true;
+        await LoadJobsAsync();
+        await LoadRemotesAsync();
     }
 
     private async Task LoadJobsAsync()

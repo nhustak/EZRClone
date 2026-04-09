@@ -7,7 +7,6 @@
              xmlns:conv="clr-namespace:EZRClone.Converters"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:ConfigViewModel}"
-             Loaded="OnLoaded"
              Background="{DynamicResource BackgroundBrush}">
     <UserControl.Resources>
         <conv:InverseBoolToVisConverter x:Key="InverseBoolToVis" />
@@ -29,7 +28,7 @@
             <StackPanel>
                 <TextBlock Text="Remotes" FontSize="22" FontWeight="SemiBold"
                            Foreground="{DynamicResource ForegroundBrush}" />
-                <TextBlock Text="{Binding ConfigFilePath, StringFormat=Using config file: {0}}"
+                <TextBlock Text="Edit the remote definitions stored in your selected rclone.conf file."
                            FontSize="11"
                            Margin="0,4,0,0"
                            Foreground="{DynamicResource ForegroundSecondaryBrush}" />
@@ -44,6 +43,16 @@
 
         <!-- Master-Detail -->
         <Grid Grid.Row="1">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsConfigPathReady}" Value="False">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="250" />
                 <ColumnDefinition Width="12" />
@@ -193,6 +202,36 @@
                 </Grid>
             </Border>
         </Grid>
+
+        <Border Grid.Row="1"
+                Background="{DynamicResource SurfaceBrush}"
+                CornerRadius="3"
+                Padding="24">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsConfigPathReady}" Value="False">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Remotes"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ForegroundBrush}" />
+                <TextBlock Text="This screen edits the remotes inside the currently selected rclone.conf file."
+                           Margin="0,8,0,0"
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                           TextWrapping="Wrap" />
+                <TextBlock Text="The config file path is missing or invalid. Open App Settings, choose rclone.exe and rclone.conf, save, then come back here and press Refresh."
+                           Margin="0,16,0,0"
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
 
         <!-- Status bar -->
         <Border Grid.Row="2" Margin="0,8,0,0">

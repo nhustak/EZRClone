@@ -15,6 +15,7 @@ public partial class BrowseViewModel : ObservableObject
     private readonly IRCloneConfigService _configService;
     private readonly IAppSettingsService _settingsService;
     private readonly Dictionary<string, (List<RemoteItem> items, string? status)> _cache = new();
+    private bool _isInitialized;
 
     [ObservableProperty]
     private ObservableCollection<string> _availableRemotes = new();
@@ -48,8 +49,15 @@ public partial class BrowseViewModel : ObservableObject
         _processService = processService;
         _configService = configService;
         _settingsService = settingsService;
+    }
 
-        _ = LoadRemotesAsync();
+    public async Task EnsureInitializedAsync()
+    {
+        if (_isInitialized)
+            return;
+
+        _isInitialized = true;
+        await LoadRemotesAsync();
     }
 
     private async Task LoadRemotesAsync()

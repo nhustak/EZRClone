@@ -16,6 +16,12 @@ public partial class BrowseView : UserControl
         InitializeComponent();
     }
 
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is BrowseViewModel vm)
+            await vm.EnsureInitializedAsync();
+    }
+
     private void OnItemDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (sender is ListViewItem { Content: RemoteItem { IsDirectory: true } item }

@@ -1,14 +1,12 @@
 <Application x:Class="EZRClone.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:vm="clr-namespace:EZRClone.ViewModels"
-             xmlns:views="clr-namespace:EZRClone.Views">
+             xmlns:views="clr-namespace:EZRClone.Views"
+             xmlns:converters="clr-namespace:EZRClone.Converters">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ui:ThemesDictionary Theme="Dark" />
-                <ui:ControlsDictionary />
                 <ResourceDictionary Source="Resources/DarkTheme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
@@ -32,6 +30,7 @@
             </DataTemplate>
 
             <BooleanToVisibilityConverter x:Key="BoolToVis" />
+            <converters:SelectedNavToBoolConverter x:Key="SelectedNavToBool" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

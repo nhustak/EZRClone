@@ -15,44 +15,10 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Grid.ColumnSpan="2"
-                Background="#6B4F1D"
-                BorderBrush="#D6A84D"
-                BorderThickness="0,0,0,1"
-                Padding="12,8">
-            <Border.Style>
-                <Style TargetType="Border">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsAppWarningVisible}" Value="True">
-                            <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Border.Style>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="{Binding AppWarningMessage}"
-                           FontWeight="SemiBold"
-                           Foreground="White"
-                           TextWrapping="Wrap" />
-                <Button Grid.Column="1"
-                        Content="Open Settings"
-                        Command="{Binding OpenAppWarningTargetCommand}"
-                        Margin="12,0,0,0"
-                        Padding="12,4" />
-            </Grid>
-        </Border>
-
-        <!-- Navigation Sidebar -->
-        <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource SurfaceBrush}">
+        <Border Grid.Row="0" Grid.Column="0" Background="{DynamicResource SurfaceBrush}">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Bottom" Text="{Binding VersionText}"
                            FontSize="9" Foreground="{DynamicResource ForegroundSecondaryBrush}"
@@ -60,40 +26,50 @@
                 <RadioButton DockPanel.Dock="Bottom" Style="{DynamicResource NavButtonStyle}"
                              Content="&#xE713;"
                              Tag="App"
+                             GroupName="MainNav"
+                             IsChecked="{Binding SelectedNav, Converter={StaticResource SelectedNavToBool}, ConverterParameter=Settings}"
                              Command="{Binding NavigateCommand}"
                              CommandParameter="Settings" />
                 <StackPanel VerticalAlignment="Top">
                     <RadioButton Style="{DynamicResource NavButtonStyle}"
                                  Content="&#xE8B7;"
                                  Tag="Remotes"
-                                 IsChecked="True"
+                                 GroupName="MainNav"
+                                 IsChecked="{Binding SelectedNav, Converter={StaticResource SelectedNavToBool}, ConverterParameter=Config}"
                                  Command="{Binding NavigateCommand}"
                                  CommandParameter="Config" />
                     <RadioButton Style="{DynamicResource NavButtonStyle}"
                                  Content="&#xE895;"
                                  Tag="Jobs"
+                                 GroupName="MainNav"
+                                 IsChecked="{Binding SelectedNav, Converter={StaticResource SelectedNavToBool}, ConverterParameter=Jobs}"
                                  Command="{Binding NavigateCommand}"
                                  CommandParameter="Jobs" />
                     <RadioButton Style="{DynamicResource NavButtonStyle}"
                                  Content="&#xED25;"
                                  Tag="Browse"
+                                 GroupName="MainNav"
+                                 IsChecked="{Binding SelectedNav, Converter={StaticResource SelectedNavToBool}, ConverterParameter=Browse}"
                                  Command="{Binding NavigateCommand}"
                                  CommandParameter="Browse" />
                     <RadioButton Style="{DynamicResource NavButtonStyle}"
                                  Content="&#xE721;"
                                  Tag="Search"
+                                 GroupName="MainNav"
+                                 IsChecked="{Binding SelectedNav, Converter={StaticResource SelectedNavToBool}, ConverterParameter=Search}"
                                  Command="{Binding NavigateCommand}"
                                  CommandParameter="Search" />
                     <RadioButton Style="{DynamicResource NavButtonStyle}"
                                  Content="&#xE9D5;"
                                  Tag="Log"
+                                 GroupName="MainNav"
+                                 IsChecked="{Binding SelectedNav, Converter={StaticResource SelectedNavToBool}, ConverterParameter=Log}"
                                  Command="{Binding NavigateCommand}"
                                  CommandParameter="Log" />
                 </StackPanel>
             </DockPanel>
         </Border>
 
-        <!-- Content Area -->
-        <ContentControl Grid.Row="1" Grid.Column="1" Content="{Binding CurrentView}" Margin="0" />
+        <ContentControl Grid.Row="0" Grid.Column="1" Content="{Binding CurrentView}" Margin="0" />
     </Grid>
 </Window>

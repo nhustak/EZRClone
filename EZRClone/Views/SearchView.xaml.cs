@@ -15,6 +15,12 @@ public partial class SearchView : UserControl
         InitializeComponent();
     }
 
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is SearchViewModel vm)
+            await vm.EnsureInitializedAsync();
+    }
+
     private void OnColumnHeaderClick(object sender, RoutedEventArgs e)
     {
         _sortHelper.OnColumnHeaderClick(sender, e);

@@ -8,6 +8,7 @@
              xmlns:converters="clr-namespace:EZRClone.Converters"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:JobsViewModel}"
+             Loaded="OnLoaded"
              Background="{DynamicResource BackgroundBrush}">
     <UserControl.Resources>
         <converters:InverseBoolToVisConverter x:Key="InverseBoolToVis"/>

@@ -14,6 +14,7 @@ public partial class SearchViewModel : ObservableObject
     private readonly IRCloneProcessService _processService;
     private readonly IRCloneConfigService _configService;
     private readonly IAppSettingsService _settingsService;
+    private bool _isInitialized;
 
     [ObservableProperty]
     private ObservableCollection<string> _availableRemotes = new();
@@ -41,8 +42,15 @@ public partial class SearchViewModel : ObservableObject
         _processService = processService;
         _configService = configService;
         _settingsService = settingsService;
+    }
 
-        _ = LoadRemotesAsync();
+    public async Task EnsureInitializedAsync()
+    {
+        if (_isInitialized)
+            return;
+
+        _isInitialized = true;
+        await LoadRemotesAsync();
     }
 
     private async Task LoadRemotesAsync()

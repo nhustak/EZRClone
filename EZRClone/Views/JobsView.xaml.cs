@@ -12,6 +12,12 @@ public partial class JobsView : UserControl
         InitializeComponent();
     }
 
+    private async void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is ViewModels.JobsViewModel vm)
+            await vm.EnsureInitializedAsync();
+    }
+
     private void OnOperationSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (GetEditingJob() is not { } job)
