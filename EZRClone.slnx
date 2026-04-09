@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="EZRClone/EZRClone.csproj" />
+  <Project Path="../HotCoreUtility/HotCoreUtility/HotCoreUtility.csproj" />
   <Project Path="EZRClone.Tests/EZRClone.Tests.csproj" />
 </Solution>

@@ -1,12 +1,22 @@
-using System.Diagnostics;
-using System.IO;
-using System.Text;
-using EZRClone.Models;
+using HotCoreUtility.RClone;
+using HotCoreUtility.RClone.Process;
 
 namespace EZRClone.Services;
 
 public class RCloneProcessService : IRCloneProcessService
 {
+    private readonly IRCloneProcessRunner _processRunner;
+
+    public RCloneProcessService()
+        : this(new RCloneProcessRunner())
+    {
+    }
+
+    public RCloneProcessService(IRCloneProcessRunner processRunner)
+    {
+        _processRunner = processRunner;
+    }
+
     public string RCloneExePath { get; set; } = string.Empty;
 
     public async Task<string> RunAsync(string arguments)
@@ -14,35 +24,26 @@ public class RCloneProcessService : IRCloneProcessService
         if (string.IsNullOrWhiteSpace(RCloneExePath))
             throw new InvalidOperationException("RClone executable path is not configured.");
 
-        using var process = new Process();
-        process.StartInfo = new ProcessStartInfo
+        var args = ParseArguments(arguments);
+        var result = await _processRunner.ExecuteAsync(ToEnvironment(), new HotCoreUtility.RClone.RCloneCommandRequest
         {
-            FileName = RCloneExePath,
-            Arguments = arguments,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
+            Arguments = args,
+            Operation = args.FirstOrDefault() ?? "rclone"
+        });
 
-        process.Start();
-        var output = await process.StandardOutput.ReadToEndAsync();
-        var error = await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
+        if (!result.IsSuccess)
+            throw new InvalidOperationException($"rclone error: {string.Join(" ", new[] { result.Error, result.Output }.Where(item => !string.IsNullOrWhiteSpace(item))).Trim()}");
 
-        if (process.ExitCode != 0 && !string.IsNullOrWhiteSpace(error))
-            throw new InvalidOperationException($"rclone error: {error.Trim()}");
-
-        return output.Trim();
+        return result.Output.Trim();
     }
 
-    public Task<string> GetVersionAsync() => RunAsync("version");
+    public Task<string> GetVersionAsync() => _processRunner.GetVersionAsync(ToEnvironment());
 
-    public Task<string> GetConfigFilePathAsync() => RunAsync("config file");
+    public Task<string> GetConfigFilePathAsync() => _processRunner.GetConfigFilePathAsync(ToEnvironment());
 
     public async Task<(int exitCode, string output, string error)> ExecuteAsync(List<string> args)
     {
-        var result = await ExecuteDetailedAsync(new RCloneCommandRequest
+        var result = await ExecuteDetailedAsync(new EZRClone.Models.RCloneCommandRequest
         {
             Arguments = args,
             Operation = args.FirstOrDefault() ?? "rclone"
@@ -51,127 +52,82 @@ public class RCloneProcessService : IRCloneProcessService
         return (result.ExitCode, result.Output, result.Error);
     }
 
-    public async Task<RCloneCommandResult> ExecuteDetailedAsync(RCloneCommandRequest request, CancellationToken cancellationToken = default)
+    public async Task<EZRClone.Models.RCloneCommandResult> ExecuteDetailedAsync(EZRClone.Models.RCloneCommandRequest request, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(RCloneExePath))
-            throw new InvalidOperationException("RClone executable path is not configured.");
-
-        using var process = new Process();
-        process.StartInfo = new ProcessStartInfo
+        var result = await _processRunner.ExecuteAsync(ToEnvironment(), new HotCoreUtility.RClone.RCloneCommandRequest
         {
-            FileName = RCloneExePath,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
+            Arguments = request.Arguments,
+            Operation = request.Operation,
+            Category = request.Category,
+            JobId = request.JobId,
+            JobName = request.JobName,
+            TimeoutMilliseconds = request.TimeoutMilliseconds,
+            OnOutput = request.OnOutput is null
+                ? null
+                : output => request.OnOutput(new EZRClone.Models.RCloneProcessOutput
+                {
+                    Text = output.Text,
+                    IsError = output.IsError,
+                    Timestamp = output.Timestamp
+                })
+        }, cancellationToken);
 
-        foreach (var arg in request.Arguments)
+        return new EZRClone.Models.RCloneCommandResult
         {
-            process.StartInfo.ArgumentList.Add(arg);
-        }
-
-        var commandText = BuildDisplayCommand(request.Arguments);
-        var outputBuilder = new StringBuilder();
-        var errorBuilder = new StringBuilder();
-        var startedAt = DateTime.Now;
-
-        process.OutputDataReceived += (_, e) =>
-        {
-            if (e.Data is null) return;
-            lock (outputBuilder)
-            {
-                outputBuilder.AppendLine(e.Data);
-            }
-
-            request.OnOutput?.Invoke(new RCloneProcessOutput
-            {
-                Text = e.Data,
-                IsError = false,
-                Timestamp = DateTime.Now
-            });
-        };
-
-        process.ErrorDataReceived += (_, e) =>
-        {
-            if (e.Data is null) return;
-            lock (errorBuilder)
-            {
-                errorBuilder.AppendLine(e.Data);
-            }
-
-            request.OnOutput?.Invoke(new RCloneProcessOutput
-            {
-                Text = e.Data,
-                IsError = true,
-                Timestamp = DateTime.Now
-            });
-        };
-
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        using var timeoutCts = request.TimeoutMilliseconds is int timeout
-            ? new CancellationTokenSource(timeout)
-            : null;
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
-            cancellationToken,
-            timeoutCts?.Token ?? CancellationToken.None);
-
-        var timedOut = false;
-        var wasCancelled = false;
-
-        try
-        {
-            await process.WaitForExitAsync(linkedCts.Token);
-        }
-        catch (OperationCanceledException) when (timeoutCts?.IsCancellationRequested == true)
-        {
-            timedOut = true;
-            TryTerminate(process);
-        }
-        catch (OperationCanceledException)
-        {
-            wasCancelled = true;
-            TryTerminate(process);
-        }
-
-        if (!process.HasExited)
-        {
-            await process.WaitForExitAsync();
-        }
-
-        return new RCloneCommandResult
-        {
-            ExitCode = process.ExitCode,
-            Output = outputBuilder.ToString().Trim(),
-            Error = errorBuilder.ToString().Trim(),
-            CommandText = commandText,
-            TimedOut = timedOut,
-            WasCancelled = wasCancelled,
-            StartedAt = startedAt,
-            FinishedAt = DateTime.Now
+            ExitCode = result.ExitCode,
+            Output = result.Output,
+            Error = result.Error,
+            CommandText = result.CommandText,
+            TimedOut = result.TimedOut,
+            WasCancelled = result.WasCancelled,
+            StartedAt = result.StartedAt,
+            FinishedAt = result.FinishedAt
         };
     }
 
-    private string BuildDisplayCommand(IReadOnlyList<string> arguments)
+    private RCloneEnvironmentSettings ToEnvironment()
     {
-        var displayArgs = arguments.Select(arg =>
-            arg.Contains(' ') ? $"\"{arg}\"" : arg);
-        return $"{Path.GetFileName(RCloneExePath)} {string.Join(" ", displayArgs)}";
+        return new RCloneEnvironmentSettings
+        {
+            ExePath = RCloneExePath
+        };
     }
 
-    private static void TryTerminate(Process process)
+    private static IReadOnlyList<string> ParseArguments(string arguments)
     {
-        try
+        var parsed = new List<string>();
+        if (string.IsNullOrWhiteSpace(arguments))
+            return parsed;
+
+        var current = new System.Text.StringBuilder();
+        var inQuotes = false;
+        foreach (var character in arguments)
         {
-            if (!process.HasExited)
-                process.Kill(true);
+            if (character == '"')
+            {
+                inQuotes = !inQuotes;
+                continue;
+            }
+
+            if (char.IsWhiteSpace(character) && !inQuotes)
+            {
+                if (current.Length > 0)
+                {
+                    parsed.Add(current.ToString());
+                    current.Clear();
+                }
+
+                continue;
+            }
+
+            current.Append(character);
         }
-        catch
+
+        if (current.Length > 0)
         {
-            // Best-effort termination only.
+            parsed.Add(current.ToString());
         }
+
+        return parsed;
     }
 }

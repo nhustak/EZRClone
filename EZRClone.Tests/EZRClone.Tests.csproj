@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EZRClone\EZRClone.csproj" />
+    <ProjectReference Include="..\..\HotCoreUtility\HotCoreUtility\HotCoreUtility.csproj" />
   </ItemGroup>
 
 </Project>
