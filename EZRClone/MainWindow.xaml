@@ -59,13 +59,13 @@
                            HorizontalAlignment="Center" Margin="0,0,0,8"/>
                 <RadioButton DockPanel.Dock="Bottom" Style="{DynamicResource NavButtonStyle}"
                              Content="&#xE713;"
-                             Tag="Settings"
+                             Tag="App"
                              Command="{Binding NavigateCommand}"
                              CommandParameter="Settings" />
                 <StackPanel VerticalAlignment="Top">
                     <RadioButton Style="{DynamicResource NavButtonStyle}"
                                  Content="&#xE8B7;"
-                                 Tag="Config"
+                                 Tag="Remotes"
                                  IsChecked="True"
                                  Command="{Binding NavigateCommand}"
                                  CommandParameter="Config" />

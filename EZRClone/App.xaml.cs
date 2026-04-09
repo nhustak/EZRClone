@@ -44,6 +44,7 @@ public partial class App : Application
         var logService = _serviceProvider.GetRequiredService<IAppLogService>();
         var settings = settingsService.Load();
         processService.RCloneExePath = settings.RCloneExePath;
+        processService.RCloneConfigPath = settings.RCloneConfigPath;
         logService.LoadRunHistoryAsync().GetAwaiter().GetResult();
 
         // Wire up Config → Browse navigation

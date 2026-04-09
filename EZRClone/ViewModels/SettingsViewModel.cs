@@ -88,6 +88,7 @@ public partial class SettingsViewModel : ObservableObject
         };
 
         _processService.RCloneExePath = settings.RCloneExePath;
+        _processService.RCloneConfigPath = settings.RCloneConfigPath;
         _settingsService.Save(settings);
         await ValidateInternalAsync(includeRemoteCheck: true);
     }
@@ -121,6 +122,7 @@ public partial class SettingsViewModel : ObservableObject
         try
         {
             _processService.RCloneExePath = RCloneExePath;
+            _processService.RCloneConfigPath = RCloneConfigPath;
             var version = await _processService.GetVersionAsync();
             var firstLine = version.Split('\n').FirstOrDefault() ?? version;
             ExecutableValidationMessage = $"Valid — {firstLine}";
@@ -142,6 +144,7 @@ public partial class SettingsViewModel : ObservableObject
                 var configPath = await _processService.GetConfigFilePathAsync();
                 var lines = configPath.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                 RCloneConfigPath = lines.LastOrDefault()?.Trim() ?? string.Empty;
+                _processService.RCloneConfigPath = RCloneConfigPath;
             }
             catch (Exception ex)
             {
@@ -165,6 +168,7 @@ public partial class SettingsViewModel : ObservableObject
         }
 
         ConfigValidationMessage = $"Valid — {RCloneConfigPath}";
+        _processService.RCloneConfigPath = RCloneConfigPath;
 
         if (includeRemoteCheck)
         {

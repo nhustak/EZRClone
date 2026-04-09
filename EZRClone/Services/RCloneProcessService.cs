@@ -18,6 +18,7 @@ public class RCloneProcessService : IRCloneProcessService
     }
 
     public string RCloneExePath { get; set; } = string.Empty;
+    public string RCloneConfigPath { get; set; } = string.Empty;
 
     public async Task<string> RunAsync(string arguments)
     {
@@ -89,7 +90,8 @@ public class RCloneProcessService : IRCloneProcessService
     {
         return new RCloneEnvironmentSettings
         {
-            ExePath = RCloneExePath
+            ExePath = RCloneExePath,
+            ConfigPath = RCloneConfigPath
         };
     }
 

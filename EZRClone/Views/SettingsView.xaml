@@ -9,9 +9,14 @@
              Loaded="OnLoaded"
              Background="{DynamicResource BackgroundBrush}">
     <StackPanel Margin="24" MaxWidth="600" HorizontalAlignment="Left">
-        <TextBlock Text="Settings" FontSize="22" FontWeight="SemiBold"
+        <TextBlock Text="Application Settings" FontSize="22" FontWeight="SemiBold"
                    Foreground="{DynamicResource ForegroundBrush}"
                    Margin="0,0,0,24" />
+        <Border Background="{DynamicResource SurfaceBrush}" Padding="10" Margin="0,0,0,20" CornerRadius="3">
+            <TextBlock Text="Use this screen to set the rclone executable path and the single rclone.conf file that EZRClone should use for tests, browse, search, and jobs."
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource ForegroundSecondaryBrush}" />
+        </Border>
 
         <!-- RClone exe path -->
         <TextBlock Text="RClone Executable Path:" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,6" />
@@ -45,7 +50,7 @@
                    Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,0,0,12" />
 
         <!-- Config file path -->
-        <TextBlock Text="Config File Location:" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,6" />
+        <TextBlock Text="RClone Config File Path:" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,6" />
         <Grid Margin="0,0,0,6">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -56,7 +61,7 @@
             <Button Grid.Column="1" Content="Override..."
                     Click="OnBrowseConfig" Margin="8,0,0,0" />
         </Grid>
-        <TextBlock Text="Leave blank to auto-detect from rclone."
+        <TextBlock Text="This is the config file used by all live rclone commands in the app. Leave blank to auto-detect from rclone."
                    Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"
                    Margin="0,0,0,24" />
         <TextBlock Text="{Binding ConfigValidationMessage}" FontSize="11"
