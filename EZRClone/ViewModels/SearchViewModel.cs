@@ -85,8 +85,8 @@ public partial class SearchViewModel : ObservableObject
             Results = new ObservableCollection<RemoteItem>(items);
 
             StatusMessage = items.Count == 0
-                ? "No results found"
-                : $"{items.Count} result{(items.Count != 1 ? "s" : "")}";
+                ? $"No results found in {SelectedRemote} for '{SearchPattern}'"
+                : $"{items.Count} result{(items.Count != 1 ? "s" : "")} in {SelectedRemote} for '{SearchPattern}'";
         }
         catch (Exception ex)
         {
@@ -213,7 +213,7 @@ public partial class SearchViewModel : ObservableObject
             : $"Deleted {completed}, failed {failed} of {items.Count}";
     }
 
-    private static List<RemoteItem> ParseSearchOutput(string output)
+    internal static List<RemoteItem> ParseSearchOutput(string output)
     {
         var items = new List<RemoteItem>();
         if (string.IsNullOrWhiteSpace(output)) return items;

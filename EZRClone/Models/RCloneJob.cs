@@ -17,6 +17,7 @@ public class RCloneJob
     public bool CreateLogFile { get; set; } = true;
     public string? LogFilePath { get; set; }
     public RCloneVerbosity Verbosity { get; set; } = RCloneVerbosity.Normal;
+    public bool DryRun { get; set; }
 
     // Filtering options
     public List<string> IncludePatterns { get; set; } = new();

@@ -84,16 +84,34 @@
                             <TextBlock Grid.Column="1" Text="{Binding SelectedRemote.Type}" />
                         </Grid>
 
-                        <ItemsControl ItemsSource="{Binding SelectedRemote.Properties}" Margin="0,4,0,16">
+                        <ItemsControl ItemsSource="{Binding DisplayProperties}" Margin="0,4,0,16">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Grid Margin="0,2">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="150" />
                                             <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{Binding Key}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontWeight="SemiBold" />
-                                        <TextBlock Grid.Column="1" Text="{Binding Value}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding DisplayValue}" TextWrapping="Wrap" />
+                                        <Button Grid.Column="2"
+                                                Content="{Binding ToggleLabel}"
+                                                Margin="8,0,0,0"
+                                                Padding="8,2"
+                                                Command="{Binding DataContext.ToggleSensitivePropertyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSensitive}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

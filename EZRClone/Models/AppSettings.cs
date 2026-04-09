@@ -6,4 +6,6 @@ public class AppSettings
     public string RCloneConfigPath { get; set; } = string.Empty;
     public string DefaultDownloadPath { get; set; } = string.Empty;
     public bool AlwaysGetDirectoryInfo { get; set; }
+    public bool StartupValidationEnabled { get; set; } = true;
+    public bool DefaultDeleteDryRun { get; set; } = true;
 }

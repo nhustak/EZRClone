@@ -7,11 +7,105 @@
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:LogViewModel}"
              Background="{DynamicResource BackgroundBrush}">
-    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-        <TextBlock Text="Log" FontSize="22" FontWeight="SemiBold"
-                   Foreground="{DynamicResource ForegroundBrush}"
-                   HorizontalAlignment="Center" Margin="0,0,0,16" />
-        <TextBlock Text="{Binding PlaceholderText}" Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                   TextAlignment="Center" TextWrapping="Wrap" MaxWidth="400" />
-    </StackPanel>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,16">
+            <TextBlock Text="Logs" FontSize="22" FontWeight="SemiBold"
+                       Foreground="{DynamicResource ForegroundBrush}" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Clear Session"
+                        Command="{Binding ClearSessionCommand}"
+                        Padding="12,6" Margin="0,0,10,0" />
+                <Button Content="Clear Filter"
+                        Command="{Binding ClearHistoryFilterCommand}"
+                        Padding="12,6" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1" Grid.ColumnSpan="2" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="260" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="History Filter:" VerticalAlignment="Center"
+                       Margin="0,0,10,0"
+                       Foreground="{DynamicResource ForegroundBrush}" />
+            <TextBox Grid.Column="1"
+                     Text="{Binding HistoryFilter, UpdateSourceTrigger=PropertyChanged}"
+                     Padding="8" />
+            <TextBlock Grid.Column="2"
+                       Text="{Binding StatusMessage}"
+                       Margin="12,0,0,0"
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource ForegroundSecondaryBrush}" />
+        </Grid>
+
+        <GroupBox Grid.Row="2" Grid.Column="0" Header="Session Events" Margin="0,0,10,0">
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <ListView ItemsSource="{Binding SessionEntries}"
+                          SelectedItem="{Binding SelectedSessionEntry}"
+                          Background="Transparent"
+                          BorderThickness="0">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="When" Width="120" DisplayMemberBinding="{Binding DisplayTimestamp}" />
+                            <GridViewColumn Header="Category" Width="90" DisplayMemberBinding="{Binding Category}" />
+                            <GridViewColumn Header="Message" Width="360" DisplayMemberBinding="{Binding SummaryText}" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+                <TextBox Grid.Row="1"
+                         Text="{Binding SelectedSessionEntry.DetailsText}"
+                         Margin="0,10,0,0"
+                         IsReadOnly="True"
+                         TextWrapping="Wrap"
+                         AcceptsReturn="True"
+                         MinHeight="110"
+                         VerticalScrollBarVisibility="Auto" />
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Row="2" Grid.Column="1" Header="Run History">
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <ListView ItemsSource="{Binding HistoryEntries}"
+                          SelectedItem="{Binding SelectedHistoryEntry}"
+                          Background="Transparent"
+                          BorderThickness="0">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="When" Width="120" DisplayMemberBinding="{Binding DisplayTimestamp}" />
+                            <GridViewColumn Header="Job" Width="160" DisplayMemberBinding="{Binding JobName}" />
+                            <GridViewColumn Header="Message" Width="300" DisplayMemberBinding="{Binding SummaryText}" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+                <TextBox Grid.Row="1"
+                         Text="{Binding SelectedHistoryEntry.DetailsText}"
+                         Margin="0,10,0,0"
+                         IsReadOnly="True"
+                         TextWrapping="Wrap"
+                         AcceptsReturn="True"
+                         MinHeight="110"
+                         VerticalScrollBarVisibility="Auto" />
+            </Grid>
+        </GroupBox>
+    </Grid>
 </UserControl>

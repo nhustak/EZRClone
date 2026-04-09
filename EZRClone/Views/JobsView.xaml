@@ -221,6 +221,11 @@
                                 <Run Text="Log File:"/>
                                 <Run Text="{Binding LogFilePath, Mode=OneWay}"/>
                             </TextBlock>
+                            <TextBlock FontSize="14" Margin="0,0,0,15"
+                                       Foreground="{DynamicResource ForegroundBrush}">
+                                <Run Text="Dry Run:"/>
+                                <Run Text="{Binding DryRun, Mode=OneWay}"/>
+                            </TextBlock>
 
                             <TextBlock Text="Last Run" FontSize="12" FontWeight="SemiBold"
                                        Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
@@ -242,6 +247,10 @@
                                         Command="{Binding DataContext.RunJobCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         Padding="15,8" Margin="0,0,10,0" FontWeight="SemiBold"/>
                                 <Button Content="✏ Edit" Command="{Binding DataContext.EditJobCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Padding="15,8" Margin="0,0,10,0"/>
+                                <Button Content="⧉ Duplicate" Command="{Binding DataContext.DuplicateJobCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Padding="15,8" Margin="0,0,10,0"/>
+                                <Button Content="📝 History" Command="{Binding DataContext.OpenHistoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         Padding="15,8" Margin="0,0,10,0"/>
                                 <Button Content="🗑 Delete" Style="{StaticResource DangerButton}"
                                         Command="{Binding DataContext.DeleteJobCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -275,7 +284,8 @@
 
                         <TextBlock Text="Operation" FontSize="12" FontWeight="SemiBold"
                                    Foreground="{DynamicResource ForegroundSecondaryBrush}"/>
-                        <ComboBox SelectedItem="{Binding Operation}" Margin="0,2,0,15" Padding="8">
+                        <ComboBox SelectedItem="{Binding Operation}" Margin="0,2,0,15" Padding="8"
+                                  SelectionChanged="OnOperationSelectionChanged">
                             <ComboBox.ItemsSource>
                                 <x:Array Type="{x:Type models:RCloneOperation}">
                                     <models:RCloneOperation>Copy</models:RCloneOperation>
@@ -468,6 +478,14 @@
 
                         <CheckBox Content="Create log file" IsChecked="{Binding CreateLogFile}"
                                   Margin="0,0,0,10"/>
+
+                        <CheckBox Content="Dry run"
+                                  IsChecked="{Binding DryRun}"
+                                  Margin="0,0,0,10" />
+                        <TextBlock Text="Delete jobs default to dry run until you uncheck it."
+                                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                   FontSize="11"
+                                   Margin="0,0,0,15" />
 
                         <TextBlock Text="Log File Path" FontSize="12" FontWeight="SemiBold"
                                    Foreground="{DynamicResource ForegroundSecondaryBrush}">

@@ -4,18 +4,20 @@ A Windows desktop GUI for [rclone](https://rclone.org/), the command-line cloud 
 
 ## Features
 
-- **Config Management** — View and manage rclone remote configurations
-- **Job Management** — Create, edit, and run sync/copy jobs with customizable options (transfers, checkers, bandwidth limits, filters)
+- **Config Management** — View, validate, edit, and safely manage `rclone.conf` remotes with masking for sensitive values
+- **Job Management** — Create, duplicate, dry-run, and run sync/copy/move/delete jobs with validation and run history
 - **Remote Browser** — Browse files and directories on any configured remote with Explorer-style navigation
 - **Search** — Find files across remotes using wildcard patterns (e.g., `*.jpg`, `backup*`)
 - **Download/Delete** — Download files to local storage or delete from remotes (supports multi-select)
 - **Directory Info** — Get recursive file counts and total sizes for directories
 - **Batch Import** — Import multiple jobs from text files
+- **Logs & History** — Review session events and persisted job run history from inside the app
+- **Startup Validation** — Surface invalid `rclone` executable/config settings and route users to Settings before deeper failures
 
 ## Requirements
 
 - Windows 10/11
-- .NET 9.0 Runtime
+- .NET 10.0 Runtime
 - [rclone](https://rclone.org/downloads/) installed and configured
 
 ## Getting Started
@@ -25,6 +27,15 @@ A Windows desktop GUI for [rclone](https://rclone.org/), the command-line cloud 
 3. Launch EZRClone
 4. Go to Settings and set the path to `rclone.exe`
 5. Start browsing your remotes or create sync jobs
+
+## Current Status
+
+EZRClone is now in a functional beta/release-candidate state:
+
+- core remotes, browse, search, downloads, deletes, and job execution are implemented
+- live run logging and persisted job history are implemented
+- job safety features such as validation, delete confirmation, and dry-run support are implemented
+- automated tests cover config parsing, batch import parsing, command argument building, output parsing, and log persistence
 
 ## Building from Source
 

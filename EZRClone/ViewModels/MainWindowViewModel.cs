@@ -1,6 +1,7 @@
 using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using EZRClone.Models;
 
 namespace EZRClone.ViewModels;
 
@@ -11,6 +12,15 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private string _selectedNav = "Config";
+
+    [ObservableProperty]
+    private string? _appWarningMessage;
+
+    [ObservableProperty]
+    private bool _isAppWarningVisible;
+
+    [ObservableProperty]
+    private AppLogSeverity _appWarningSeverity = AppLogSeverity.Warning;
 
     public string VersionText { get; } =
         $"v{Assembly.GetExecutingAssembly().GetName().Version}";
@@ -40,6 +50,29 @@ public partial class MainWindowViewModel : ObservableObject
         CurrentView = _configViewModel;
     }
 
+    public void ShowAppWarning(string message, AppLogSeverity severity = AppLogSeverity.Warning)
+    {
+        AppWarningMessage = message;
+        AppWarningSeverity = severity;
+        IsAppWarningVisible = !string.IsNullOrWhiteSpace(message);
+    }
+
+    public void ClearAppWarning()
+    {
+        AppWarningMessage = null;
+        IsAppWarningVisible = false;
+    }
+
+    public void NavigateToSettings()
+    {
+        Navigate("Settings");
+    }
+
+    public void NavigateToLog()
+    {
+        Navigate("Log");
+    }
+
     [RelayCommand]
     private void Navigate(string destination)
     {
@@ -54,5 +87,11 @@ public partial class MainWindowViewModel : ObservableObject
             "Log" => _logViewModel,
             _ => _configViewModel
         };
+    }
+
+    [RelayCommand]
+    private void OpenAppWarningTarget()
+    {
+        NavigateToSettings();
     }
 }

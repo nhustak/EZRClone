@@ -14,9 +14,45 @@
             <ColumnDefinition Width="60" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Grid.ColumnSpan="2"
+                Background="#6B4F1D"
+                BorderBrush="#D6A84D"
+                BorderThickness="0,0,0,1"
+                Padding="12,8">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsAppWarningVisible}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding AppWarningMessage}"
+                           FontWeight="SemiBold"
+                           Foreground="White"
+                           TextWrapping="Wrap" />
+                <Button Grid.Column="1"
+                        Content="Open Settings"
+                        Command="{Binding OpenAppWarningTargetCommand}"
+                        Margin="12,0,0,0"
+                        Padding="12,4" />
+            </Grid>
+        </Border>
 
         <!-- Navigation Sidebar -->
-        <Border Grid.Column="0" Background="{DynamicResource SurfaceBrush}">
+        <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource SurfaceBrush}">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Bottom" Text="{Binding VersionText}"
                            FontSize="9" Foreground="{DynamicResource ForegroundSecondaryBrush}"
@@ -58,6 +94,6 @@
         </Border>
 
         <!-- Content Area -->
-        <ContentControl Grid.Column="1" Content="{Binding CurrentView}" Margin="0" />
+        <ContentControl Grid.Row="1" Grid.Column="1" Content="{Binding CurrentView}" Margin="0" />
     </Grid>
 </Window>

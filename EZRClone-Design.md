@@ -24,7 +24,7 @@
 | App Settings | Configure the path to `rclone.exe` | ✅ Implemented |
 | Config Editor | Read, create, edit, and delete remotes in `rclone.conf` | ✅ Implemented |
 | Jobs | Create, manage, and execute sync/copy/move operations | ✅ Implemented |
-| Log Viewer | Display rclone command output and application logs | Placeholder |
+| Log Viewer | Display rclone command output and application logs | ✅ Implemented |
 
 ---
 
@@ -32,7 +32,7 @@
 
 | Component | Technology |
 |-----------|------------|
-| Runtime | .NET 9.0 |
+| Runtime | .NET 10.0 |
 | Language | C# 13 |
 | UI Framework | WPF (Windows Presentation Foundation) |
 | MVVM Toolkit | CommunityToolkit.Mvvm 8.4.0 (source-generated) |
@@ -67,7 +67,7 @@ The application uses a **left navigation sidebar + content area** shell. Each na
 | 📁 | Config | ConfigView | ✅ Implemented |
 | ⚙️ | Settings | SettingsView | ✅ Implemented |
 | 🔄 | Jobs | JobsView | ✅ Implemented |
-| 📋 | Log | LogView | Placeholder (future) |
+| 📋 | Log | LogView | ✅ Implemented |
 
 #### Main Shell Layout
 
@@ -245,7 +245,7 @@ The Jobs view provides full management of RClone sync/copy/move operations.
 | Include Patterns | Only transfer files matching these patterns | (none) |
 | Exclude Patterns | Skip files matching these patterns | (none) |
 
-#### Window: Log View (Future Placeholder)
+#### Window: Log View
 
 ```
 ┌──────────┬─────────────────────────────────────────────────────┐
@@ -254,7 +254,7 @@ The Jobs view provides full management of RClone sync/copy/move operations.
 │          │  📋 No log entries yet.                              │
 │          │                                                     │
 │          │  This view will display rclone command output       │
-│          │  and application logs in a future release.          │
+│          │  Session events and persisted job run history.      │
 │          │                                                     │
 └──────────┴─────────────────────────────────────────────────────┘
 ```
@@ -281,13 +281,13 @@ EZRClone.slnx
     │   ├── ConfigViewModel.cs          # Remote list + detail + inline edit
     │   ├── SettingsViewModel.cs        # rclone.exe path configuration
     │   ├── JobsViewModel.cs            # Job management and execution
-    │   └── LogViewModel.cs             # Placeholder
+    │   └── LogViewModel.cs             # Session log + persisted run history
     │
     ├── Views/
     │   ├── ConfigView.xaml             # Master-detail remote management
     │   ├── SettingsView.xaml           # App settings page
     │   ├── JobsView.xaml               # Job creation, editing, and execution
-    │   └── LogView.xaml                # Placeholder
+    │   └── LogView.xaml                # Session log + persisted run history UI
     │
     ├── Services/
     │   ├── IAppSettingsService.cs      # Interface: load/save app settings

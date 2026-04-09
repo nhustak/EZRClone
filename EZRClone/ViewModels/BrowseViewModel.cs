@@ -340,7 +340,10 @@ public partial class BrowseViewModel : ObservableObject
             var items = ParseLsfOutput(output, path);
             Items = new ObservableCollection<RemoteItem>(items);
 
-            var status = items.Count == 0 ? "Empty directory" : $"{items.Count} item{(items.Count != 1 ? "s" : "")}";
+            var location = string.IsNullOrEmpty(path) ? $"{SelectedRemote}:/" : $"{SelectedRemote}:{path}";
+            var status = items.Count == 0
+                ? $"Empty directory • {location}"
+                : $"{items.Count} item{(items.Count != 1 ? "s" : "")} • {location}";
             StatusMessage = status;
             _cache[cacheKey] = (items, status);
 
@@ -380,7 +383,7 @@ public partial class BrowseViewModel : ObservableObject
         Breadcrumbs = segments;
     }
 
-    private static List<RemoteItem> ParseLsfOutput(string output, string parentPath)
+    internal static List<RemoteItem> ParseLsfOutput(string output, string parentPath)
     {
         var items = new List<RemoteItem>();
         if (string.IsNullOrWhiteSpace(output)) return items;

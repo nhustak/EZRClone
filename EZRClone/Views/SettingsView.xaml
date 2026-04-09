@@ -41,6 +41,9 @@
             <Run Text="{Binding ValidationMessage, Mode=OneWay}" />
         </TextBlock>
 
+        <TextBlock Text="{Binding ExecutableValidationMessage}" FontSize="11"
+                   Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,0,0,12" />
+
         <!-- Config file path -->
         <TextBlock Text="Config File Location:" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,6" />
         <Grid Margin="0,0,0,6">
@@ -56,6 +59,8 @@
         <TextBlock Text="Leave blank to auto-detect from rclone."
                    Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"
                    Margin="0,0,0,24" />
+        <TextBlock Text="{Binding ConfigValidationMessage}" FontSize="11"
+                   Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,0,0,12" />
 
         <!-- Default download path -->
         <TextBlock Text="Default Download Path:" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,6" />
@@ -83,8 +88,28 @@
                    TextWrapping="Wrap"
                    Margin="0,0,0,24" />
 
+        <CheckBox Content="Validate settings on startup"
+                  IsChecked="{Binding StartupValidationEnabled}"
+                  Foreground="{DynamicResource ForegroundBrush}"
+                  Margin="0,0,0,6" />
+
+        <CheckBox Content="Default delete jobs to dry run"
+                  IsChecked="{Binding DefaultDeleteDryRun}"
+                  Foreground="{DynamicResource ForegroundBrush}"
+                  Margin="0,0,0,6" />
+        <TextBlock Text="{Binding RemoteValidationMessage}"
+                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                   FontSize="11"
+                   Margin="0,0,0,24" />
+
         <!-- Save -->
-        <Button Content="Save" Style="{DynamicResource AccentButton}"
-                Command="{Binding SaveCommand}" HorizontalAlignment="Left" />
+        <StackPanel Orientation="Horizontal">
+            <Button Content="Validate" Margin="0,0,10,0"
+                    Command="{Binding ValidateCommand}" HorizontalAlignment="Left" />
+            <Button Content="Test Settings" Margin="0,0,10,0"
+                    Command="{Binding TestSettingsCommand}" HorizontalAlignment="Left" />
+            <Button Content="Save" Style="{DynamicResource AccentButton}"
+                    Command="{Binding SaveCommand}" HorizontalAlignment="Left" />
+        </StackPanel>
     </StackPanel>
 </UserControl>

@@ -12,6 +12,15 @@ public partial class JobsView : UserControl
         InitializeComponent();
     }
 
+    private void OnOperationSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (GetEditingJob() is not { } job)
+            return;
+
+        if (job.Operation == RCloneOperation.Delete && job.LastRun is null && !job.DryRun)
+            job.DryRun = true;
+    }
+
     private void OnBrowseSourcePath(object sender, RoutedEventArgs e)
     {
         var path = BrowseForFolder("Select Source Folder");
