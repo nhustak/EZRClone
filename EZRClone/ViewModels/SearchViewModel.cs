@@ -175,11 +175,9 @@ public partial class SearchViewModel : ObservableObject
     {
         if (SelectedRemote == null || items.Count == 0) return;
 
-        var label = items.Count == 1
-            ? $"{(items[0].IsDirectory ? "directory" : "file")} '{items[0].Name}'"
-            : $"{items.Count} items";
+        var label = BuildDeleteLabel(items);
         var result = MessageBox.Show(
-            $"Delete {label}?\n\nThis cannot be undone.",
+            $"Delete {label} from remote '{SelectedRemote}'?\n\nDirectories will be purged recursively.\n\nThis cannot be undone.",
             "Confirm Delete",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
@@ -261,5 +259,17 @@ public partial class SearchViewModel : ObservableObject
         }
 
         return items.OrderBy(i => i.Path, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private static string BuildDeleteLabel(IList<RemoteItem> items)
+    {
+        if (items.Count == 1)
+            return $"{(items[0].IsDirectory ? "directory" : "file")} '{items[0].Name}'";
+
+        var preview = string.Join(", ", items.Take(3).Select(item => item.Name));
+        if (items.Count > 3)
+            preview += ", ...";
+
+        return $"{items.Count} items ({preview})";
     }
 }

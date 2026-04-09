@@ -16,6 +16,8 @@ public partial class BrowseViewModel : ObservableObject
     private readonly IAppSettingsService _settingsService;
     private readonly Dictionary<string, (List<RemoteItem> items, string? status)> _cache = new();
     private bool _isInitialized;
+    private const int DirectoryListTimeoutMs = 30000;
+    private const int DirectoryInfoTimeoutMs = 30000;
 
     [ObservableProperty]
     private ObservableCollection<string> _availableRemotes = new();
@@ -65,7 +67,7 @@ public partial class BrowseViewModel : ObservableObject
         try
         {
             var settings = _settingsService.Load();
-            var remotes = _configService.ReadConfig(settings.RCloneConfigPath);
+            var remotes = await Task.Run(() => _configService.ReadConfig(settings.RCloneConfigPath));
             AvailableRemotes = new ObservableCollection<string>(remotes.Select(r => r.Name));
         }
         catch
@@ -124,8 +126,15 @@ public partial class BrowseViewModel : ObservableObject
                 try
                 {
                     var remotePath = $"{SelectedRemote}:{dir.Path}";
-                    var args = new List<string> { "size", "--json", remotePath };
-                    var (exitCode, output, _) = await _processService.ExecuteAsync(args);
+                    var result = await _processService.ExecuteDetailedAsync(new RCloneCommandRequest
+                    {
+                        Arguments = ["size", "--json", remotePath],
+                        Operation = "size",
+                        Category = "Browse",
+                        TimeoutMilliseconds = DirectoryInfoTimeoutMs
+                    });
+                    var exitCode = result.ExitCode;
+                    var output = result.Output;
 
                     if (exitCode == 0 && !string.IsNullOrWhiteSpace(output))
                     {
@@ -265,11 +274,9 @@ public partial class BrowseViewModel : ObservableObject
     {
         if (SelectedRemote == null || items.Count == 0) return;
 
-        var label = items.Count == 1
-            ? $"{(items[0].IsDirectory ? "directory" : "file")} '{items[0].Name}'"
-            : $"{items.Count} items";
+        var label = BuildDeleteLabel(items);
         var result = MessageBox.Show(
-            $"Delete {label}?\n\nThis cannot be undone.",
+            $"Delete {label} from remote '{SelectedRemote}'?\n\nDirectories will be purged recursively.\n\nThis cannot be undone.",
             "Confirm Delete",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
@@ -340,7 +347,19 @@ public partial class BrowseViewModel : ObservableObject
             {
                 "lsf", "--format", "pstm", "--separator", "\t", "--max-depth", "1", remotePath
             };
-            var (exitCode, output, error) = await _processService.ExecuteAsync(args);
+            var result = await _processService.ExecuteDetailedAsync(new RCloneCommandRequest
+            {
+                Arguments = args,
+                Operation = "lsf",
+                Category = "Browse",
+                TimeoutMilliseconds = DirectoryListTimeoutMs
+            });
+            var exitCode = result.ExitCode;
+            var output = result.Output;
+            var error = result.Error;
+
+            if (result.TimedOut)
+                throw new TimeoutException("Browse request timed out.");
 
             if (exitCode != 0 && !string.IsNullOrWhiteSpace(error))
                 throw new InvalidOperationException(error);
@@ -354,13 +373,6 @@ public partial class BrowseViewModel : ObservableObject
                 : $"{items.Count} item{(items.Count != 1 ? "s" : "")} • {location}";
             StatusMessage = status;
             _cache[cacheKey] = (items, status);
-
-            // Auto-fetch directory info if setting is enabled
-            var settings = _settingsService.Load();
-            if (settings.AlwaysGetDirectoryInfo && items.Any(i => i.IsDirectory))
-            {
-                _ = GetDirectoryInfoAsync();
-            }
         }
         catch (Exception ex)
         {
@@ -434,6 +446,18 @@ public partial class BrowseViewModel : ObservableObject
             .OrderByDescending(i => i.IsDirectory)
             .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static string BuildDeleteLabel(IList<RemoteItem> items)
+    {
+        if (items.Count == 1)
+            return $"{(items[0].IsDirectory ? "directory" : "file")} '{items[0].Name}'";
+
+        var preview = string.Join(", ", items.Take(3).Select(item => item.Name));
+        if (items.Count > 3)
+            preview += ", ...";
+
+        return $"{items.Count} items ({preview})";
     }
 }
 
