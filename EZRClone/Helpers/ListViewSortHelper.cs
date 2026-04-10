@@ -24,7 +24,7 @@ public class ListViewSortHelper
         if (e.OriginalSource is not GridViewColumnHeader headerClicked) return;
         if (headerClicked.Role == GridViewColumnHeaderRole.Padding) return;
 
-        var header = headerClicked.Column?.Header?.ToString();
+        var header = NormalizeHeader(headerClicked.Column?.Header?.ToString());
         if (string.IsNullOrEmpty(header) || !HeaderToProperty.ContainsKey(header)) return;
 
         var sortProperty = HeaderToProperty[header];
@@ -47,11 +47,12 @@ public class ListViewSortHelper
 
         view.SortDescriptions.Clear();
         view.SortDescriptions.Add(new SortDescription(sortProperty, direction));
+        view.Refresh();
 
         // Update header text with arrow indicator
         if (_lastHeaderClicked != null && _lastHeaderClicked != headerClicked)
         {
-            var oldHeader = _lastHeaderClicked.Column?.Header?.ToString()?.TrimEnd(' ', '▲', '▼');
+            var oldHeader = NormalizeHeader(_lastHeaderClicked.Column?.Header?.ToString());
             if (_lastHeaderClicked.Column != null && oldHeader != null)
                 _lastHeaderClicked.Column.Header = oldHeader;
         }
@@ -62,5 +63,10 @@ public class ListViewSortHelper
 
         _lastHeaderClicked = headerClicked;
         _lastDirection = direction;
+    }
+
+    private static string? NormalizeHeader(string? header)
+    {
+        return header?.Trim().TrimEnd('▲', '▼').TrimEnd();
     }
 }

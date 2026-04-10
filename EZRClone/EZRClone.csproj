@@ -6,9 +6,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>0.1.8.0</Version>
-    <AssemblyVersion>0.1.8.0</AssemblyVersion>
-    <FileVersion>0.1.8.0</FileVersion>
+    <Version>0.1.8.1</Version>
+    <AssemblyVersion>0.1.8.1</AssemblyVersion>
+    <FileVersion>0.1.8.1</FileVersion>
+    <PublishZipName>EZRClone-win-x64.zip</PublishZipName>
+    <PublishZipPath>$(MSBuildProjectDirectory)\..\dist\$(PublishZipName)</PublishZipPath>
+    <PublishDeployPath>T:\$(PublishZipName)</PublishDeployPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,5 +23,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\HotCoreUtility\HotCoreUtility\HotCoreUtility.csproj" />
   </ItemGroup>
+
+  <Target Name="AfterPublish">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$ErrorActionPreference = 'Stop'; if (-not (Test-Path '$(PublishDir)')) { throw 'Publish directory not found: $(PublishDir)' }; if (Test-Path '$(PublishZipPath)') { Remove-Item '$(PublishZipPath)' -Force }; Compress-Archive -Path '$(PublishDir)*' -DestinationPath '$(PublishZipPath)' -Force; if (-not (Test-Path 'T:\')) { throw 'Deploy drive T:\ is not available.' }; Copy-Item '$(PublishZipPath)' '$(PublishDeployPath)' -Force&quot;" />
+  </Target>
 
 </Project>
