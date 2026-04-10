@@ -94,7 +94,110 @@
         </Grid>
         <TextBlock Text="Default folder for downloads from Browse. You can override per download."
                    Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"
-                   Margin="0,0,0,24" />
+                   Margin="0,0,0,16" />
+
+        <TextBlock Text="Global RClone CLI Options:" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,6" />
+        <TextBlock Text="Each operation can have its own default rclone flags. Downloads still let you override these at run time."
+                   Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,16" />
+
+        <Border Background="{DynamicResource SurfaceBrush}" Padding="12" Margin="0,0,0,16" CornerRadius="4">
+            <StackPanel>
+                <TextBlock Text="Connection Speed Preset"
+                           Foreground="{DynamicResource ForegroundBrush}"
+                           Margin="0,0,0,6" />
+                <Grid Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="220" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ComboBox ItemsSource="{Binding ConnectionPresets}"
+                              SelectedItem="{Binding SelectedConnectionPreset}"
+                              DisplayMemberPath="DisplayName"
+                              Padding="6,4" />
+                    <Button Grid.Column="1"
+                            Content="Apply Preset"
+                            Margin="10,0,0,0"
+                            Padding="14,6"
+                            Command="{Binding ApplyConnectionPresetCommand}" />
+                </Grid>
+                <TextBlock Text="{Binding SelectedConnectionPreset.Summary}"
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                           FontSize="11"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+
+        <ItemsControl ItemsSource="{Binding OperationEditors}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Expander Header="{Binding DisplayName}"
+                              IsExpanded="False"
+                              Margin="0,0,0,10"
+                              Foreground="{DynamicResource ForegroundBrush}">
+                        <Border Margin="0,8,0,0"
+                                Padding="12"
+                                Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="4">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Description}"
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,12" />
+
+                                <UniformGrid Columns="2" Margin="0,0,0,12">
+                                    <StackPanel Margin="0,0,10,8">
+                                        <TextBlock Text="Transfers" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,4" />
+                                        <TextBox Text="{Binding Transfers, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,0,8">
+                                        <TextBlock Text="Checkers" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,4" />
+                                        <TextBox Text="{Binding Checkers, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,10,8">
+                                        <TextBlock Text="Retries" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,4" />
+                                        <TextBox Text="{Binding Retries, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,0,8">
+                                        <TextBlock Text="Low-Level Retries" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,4" />
+                                        <TextBox Text="{Binding LowLevelRetries, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,10,8">
+                                        <TextBlock Text="Timeout (ms)" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,4" />
+                                        <TextBox Text="{Binding TimeoutMilliseconds, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,0,8">
+                                        <TextBlock Text="Multi-Thread Streams" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,4" />
+                                        <TextBox Text="{Binding MultiThreadStreams, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" />
+                                    </StackPanel>
+                                </UniformGrid>
+
+                                <TextBlock Text="Bandwidth Limit" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,4" />
+                                <TextBox Text="{Binding BandwidthLimit, UpdateSourceTrigger=PropertyChanged}"
+                                         Padding="6,4"
+                                         Margin="0,0,0,10" />
+
+                                <CheckBox Content="Enable rclone progress output for this operation"
+                                          IsChecked="{Binding UseProgress}"
+                                          Foreground="{DynamicResource ForegroundBrush}"
+                                          Margin="0,0,0,10" />
+
+                                <TextBlock Text="Extra Flags" Foreground="{DynamicResource ForegroundBrush}" Margin="0,0,0,4" />
+                                <TextBox Text="{Binding ExtraFlagsText, UpdateSourceTrigger=PropertyChanged}"
+                                         Padding="6,4"
+                                         Margin="0,0,0,4" />
+                                <TextBlock Text="Example: --multi-thread-streams 4 --ignore-existing --bwlimit 50M"
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                           FontSize="11"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </Expander>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
         <!-- Always get directory info -->
         <CheckBox Content="Always get directory info when browsing"

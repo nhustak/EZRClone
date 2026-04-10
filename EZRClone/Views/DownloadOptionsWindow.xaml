@@ -1,0 +1,163 @@
+<Window x:Class="EZRClone.Views.DownloadOptionsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Download Options"
+        Width="620"
+        Height="620"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        Background="{DynamicResource BackgroundBrush}">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Download Options"
+                   FontSize="24"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource ForegroundBrush}" />
+
+        <Border Grid.Row="1"
+                Margin="0,16,0,16"
+                Padding="16"
+                Background="{DynamicResource SurfaceBrush}"
+                CornerRadius="4">
+            <StackPanel>
+                <TextBlock x:Name="SummaryText"
+                           FontSize="14"
+                           Foreground="{DynamicResource ForegroundBrush}"
+                           TextWrapping="Wrap" />
+                <TextBlock x:Name="PreviewText"
+                           Margin="0,8,0,0"
+                           FontSize="12"
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="2"
+                      VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="Target Folder"
+                           Margin="0,0,0,6"
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}" />
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="DestinationPathTextBox"
+                             Padding="6,4" />
+                    <Button Grid.Column="1"
+                            Content="Browse..."
+                            Margin="10,0,0,0"
+                            Padding="14,6"
+                            Click="OnBrowseDestination" />
+                </Grid>
+
+                <CheckBox x:Name="PreserveStructureCheckBox"
+                          Content="Preserve remote folder structure"
+                          Margin="0,0,0,14" />
+
+                <Expander Header="Advanced rclone options"
+                          IsExpanded="True"
+                          Foreground="{DynamicResource ForegroundBrush}">
+                    <Border Margin="0,10,0,0"
+                            Padding="16"
+                            Background="{DynamicResource SurfaceBrush}"
+                            CornerRadius="4">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="140" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="30" />
+                                    <ColumnDefinition Width="140" />
+                                    <ColumnDefinition Width="120" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Transfers"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}" />
+                                <TextBox x:Name="TransfersTextBox"
+                                         Grid.Column="1"
+                                         Text="4"
+                                         Padding="6,4" />
+                                <TextBlock Grid.Column="3"
+                                           Text="Checkers"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}" />
+                                <TextBox x:Name="CheckersTextBox"
+                                         Grid.Column="4"
+                                         Text="8"
+                                         Padding="6,4" />
+                            </Grid>
+
+                            <CheckBox x:Name="DryRunCheckBox"
+                                      Content="Dry run only"
+                                      Margin="0,0,0,12" />
+
+                            <CheckBox x:Name="CreateLogCheckBox"
+                                      Content="Write rclone log file"
+                                      Margin="0,0,0,8"
+                                      Checked="OnCreateLogChecked"
+                                      Unchecked="OnCreateLogChecked" />
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="LogFilePathTextBox"
+                                         Padding="6,4" />
+                                <Button x:Name="BrowseLogButton"
+                                        Grid.Column="1"
+                                        Content="Log File..."
+                                        Margin="10,0,0,0"
+                                        Padding="14,6"
+                                        Click="OnBrowseLogFile" />
+                            </Grid>
+
+                            <TextBlock Text="Extra Flags"
+                                       Margin="0,0,0,6"
+                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" />
+                            <TextBox x:Name="ExtraFlagsTextBox"
+                                     Padding="6,4" />
+                            <TextBlock Text="Example: --checkers 8 --ignore-existing"
+                                       Margin="0,6,0,0"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" />
+                        </StackPanel>
+                    </Border>
+                </Expander>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="3"
+              Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="ValidationText"
+                       VerticalAlignment="Center"
+                       Foreground="#FFCC6666"
+                       TextWrapping="Wrap" />
+
+            <Button Grid.Column="1"
+                    Content="Cancel"
+                    Margin="0,0,10,0"
+                    Padding="16,8"
+                    Click="OnCancel" />
+            <Button Grid.Column="2"
+                    Content="Start Download"
+                    Style="{DynamicResource AccentButton}"
+                    Padding="18,8"
+                    Click="OnAccept" />
+        </Grid>
+    </Grid>
+</Window>

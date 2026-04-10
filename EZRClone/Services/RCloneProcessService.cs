@@ -19,6 +19,7 @@ public class RCloneProcessService : IRCloneProcessService
 
     public string RCloneExePath { get; set; } = string.Empty;
     public string RCloneConfigPath { get; set; } = string.Empty;
+    public RCloneOperationProfileSet OperationProfiles { get; set; } = new();
 
     public async Task<string> RunAsync(string arguments)
     {
@@ -60,6 +61,9 @@ public class RCloneProcessService : IRCloneProcessService
             Arguments = request.Arguments,
             Operation = request.Operation,
             Category = request.Category,
+            OperationProfile = request.OperationProfile,
+            ExecutionOptions = request.ExecutionOptions,
+            RequiredArguments = request.RequiredArguments,
             JobId = request.JobId,
             JobName = request.JobName,
             TimeoutMilliseconds = request.TimeoutMilliseconds,
@@ -91,7 +95,8 @@ public class RCloneProcessService : IRCloneProcessService
         return new RCloneEnvironmentSettings
         {
             ExePath = RCloneExePath,
-            ConfigPath = RCloneConfigPath
+            ConfigPath = RCloneConfigPath,
+            OperationProfiles = OperationProfiles
         };
     }
 

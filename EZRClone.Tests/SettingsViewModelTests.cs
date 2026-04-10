@@ -1,7 +1,10 @@
 using EZRClone.Models;
 using EZRClone.Services;
 using EZRClone.ViewModels;
+using HotCoreUtility.RClone;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using AppRCloneCommandRequest = EZRClone.Models.RCloneCommandRequest;
+using AppRCloneCommandResult = EZRClone.Models.RCloneCommandResult;
 
 namespace EZRClone.Tests;
 
@@ -64,6 +67,7 @@ public class SettingsViewModelTests
     {
         public string RCloneExePath { get; set; } = string.Empty;
         public string RCloneConfigPath { get; set; } = string.Empty;
+        public RCloneOperationProfileSet OperationProfiles { get; set; } = new();
         public string VersionText { get; set; } = string.Empty;
         public string ConfigPathText { get; set; } = string.Empty;
         public (int exitCode, string output, string error) ExecuteResult { get; set; }
@@ -77,8 +81,8 @@ public class SettingsViewModelTests
 
         public Task<string> GetConfigFilePathAsync() => Task.FromResult(ConfigPathText);
 
-        public Task<RCloneCommandResult> ExecuteDetailedAsync(RCloneCommandRequest request, CancellationToken cancellationToken = default) =>
-            Task.FromResult(new RCloneCommandResult
+        public Task<AppRCloneCommandResult> ExecuteDetailedAsync(AppRCloneCommandRequest request, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new AppRCloneCommandResult
             {
                 ExitCode = ExecuteResult.exitCode,
                 Output = ExecuteResult.output,

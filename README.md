@@ -8,7 +8,8 @@ A Windows desktop GUI for [rclone](https://rclone.org/), the command-line cloud 
 - **Job Management** — Create, duplicate, dry-run, and run sync/copy/move/delete jobs with validation and run history
 - **Remote Browser** — Browse files and directories on any configured remote with Explorer-style navigation
 - **Search** — Find files across remotes using wildcard patterns (e.g., `*.jpg`, `backup*`)
-- **Download/Delete** — Download files to local storage or delete from remotes (supports multi-select)
+- **Download/Delete** — Download files to local storage or delete from remotes (supports multi-select, download options, and live progress)
+- **Global RClone CLI Profiles** — Configure typed per-operation defaults for download, browse, search, directory info, delete, remote validation, and job execution
 - **Directory Info** — Get recursive file counts and total sizes for directories
 - **Batch Import** — Import multiple jobs from text files
 - **Logs & History** — Review session events and persisted job run history from inside the app

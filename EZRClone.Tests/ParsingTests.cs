@@ -1,5 +1,6 @@
 using EZRClone.Models;
 using EZRClone.ViewModels;
+using HotCoreUtility.RClone;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace EZRClone.Tests;
@@ -27,9 +28,32 @@ public class ParsingTests
         Assert.AreEqual("sync", args[0]);
         CollectionAssert.Contains(args, "EOM:source");
         CollectionAssert.Contains(args, "C:\\Target");
-        CollectionAssert.Contains(args, "--dry-run");
         CollectionAssert.Contains(args, "--include");
         CollectionAssert.Contains(args, "*.zip");
+    }
+
+    [TestMethod]
+    public void OperationOptions_Merge_PrefersOverridesAndAppendsExtraFlags()
+    {
+        var defaults = new RCloneOperationOptions
+        {
+            Transfers = 4,
+            Checkers = 8,
+            ExtraFlagsText = "--ignore-existing"
+        };
+        var overrides = new RCloneOperationOptions
+        {
+            Transfers = 12,
+            ExtraFlagsText = "--bwlimit 50M"
+        };
+
+        var merged = RCloneOperationOptions.Merge(defaults, overrides);
+
+        Assert.AreEqual(12, merged.Transfers);
+        Assert.AreEqual(8, merged.Checkers);
+        CollectionAssert.AreEqual(
+            new[] { "--ignore-existing", "--bwlimit", "50M" },
+            merged.GetExtraFlags().ToArray());
     }
 
     [TestMethod]

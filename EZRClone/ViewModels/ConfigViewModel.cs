@@ -5,6 +5,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EZRClone.Models;
 using EZRClone.Services;
+using RCloneOperationProfile = HotCoreUtility.RClone.RCloneOperationProfile;
+using AppRCloneCommandRequest = EZRClone.Models.RCloneCommandRequest;
 
 namespace EZRClone.ViewModels;
 
@@ -226,7 +228,17 @@ public partial class ConfigViewModel : ObservableObject
         try
         {
             StatusMessage = $"Testing '{SelectedRemote.Name}'...";
-            await _processService.RunAsync($"lsd {SelectedRemote.Name}:");
+            var result = await _processService.ExecuteDetailedAsync(new AppRCloneCommandRequest
+            {
+                Arguments = ["lsd", $"{SelectedRemote.Name}:"],
+                Operation = "lsd",
+                Category = "Validation",
+                OperationProfile = RCloneOperationProfile.RemoteValidation
+            });
+
+            if (!result.IsSuccess)
+                throw new InvalidOperationException(string.IsNullOrWhiteSpace(result.Error) ? result.Output : result.Error);
+
             StatusMessage = $"Connection to '{SelectedRemote.Name}' succeeded.";
         }
         catch (Exception ex)

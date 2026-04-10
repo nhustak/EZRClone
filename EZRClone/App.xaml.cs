@@ -44,6 +44,7 @@ public partial class App : Application
             var settings = settingsService.Load();
             processService.RCloneExePath = settings.RCloneExePath;
             processService.RCloneConfigPath = settings.RCloneConfigPath;
+            processService.OperationProfiles = settings.OperationProfiles;
 
             var configVm = _serviceProvider.GetRequiredService<ConfigViewModel>();
             var browseVm = _serviceProvider.GetRequiredService<BrowseViewModel>();

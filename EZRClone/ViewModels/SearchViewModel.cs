@@ -1,11 +1,16 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EZRClone.Models;
 using EZRClone.Services;
+using EZRClone.Views;
 using Microsoft.Win32;
+using RCloneOperationOptions = HotCoreUtility.RClone.RCloneOperationOptions;
+using RCloneOperationProfile = HotCoreUtility.RClone.RCloneOperationProfile;
+using AppRCloneCommandRequest = EZRClone.Models.RCloneCommandRequest;
 
 namespace EZRClone.ViewModels;
 
@@ -58,7 +63,7 @@ public partial class SearchViewModel : ObservableObject
         try
         {
             var settings = _settingsService.Load();
-            var remotes = _configService.ReadConfig(settings.RCloneConfigPath);
+            var remotes = await Task.Run(() => _configService.ReadConfig(settings.RCloneConfigPath));
             AvailableRemotes = new ObservableCollection<string>(remotes.Select(r => r.Name));
         }
         catch
@@ -84,7 +89,16 @@ public partial class SearchViewModel : ObservableObject
                 "lsf", "--format", "pst", "--separator", "\t",
                 "-R", "--include", SearchPattern, remotePath
             };
-            var (exitCode, output, error) = await _processService.ExecuteAsync(args);
+            var result = await _processService.ExecuteDetailedAsync(new AppRCloneCommandRequest
+            {
+                Arguments = args,
+                Operation = "lsf",
+                Category = "Search",
+                OperationProfile = RCloneOperationProfile.Search
+            });
+            var exitCode = result.ExitCode;
+            var output = result.Output;
+            var error = result.Error;
 
             if (exitCode != 0 && !string.IsNullOrWhiteSpace(error))
                 throw new InvalidOperationException(error);
@@ -111,16 +125,10 @@ public partial class SearchViewModel : ObservableObject
         if (SelectedRemote == null || items.Count == 0) return;
 
         var settings = _settingsService.Load();
-        var downloadPath = settings.DefaultDownloadPath;
+        var options = ShowDownloadOptions(items, settings.DefaultDownloadPath, defaultPreserveStructure: true);
+        if (options is null) return;
 
-        if (string.IsNullOrWhiteSpace(downloadPath))
-        {
-            var dialog = new OpenFolderDialog { Title = "Select download folder" };
-            if (dialog.ShowDialog() != true) return;
-            downloadPath = dialog.FolderName;
-        }
-
-        await DownloadMultipleAsync(items, downloadPath);
+        await DownloadMultipleAsync(items, options);
     }
 
     public async Task DownloadItemsToAsync(IList<RemoteItem> items)
@@ -128,47 +136,96 @@ public partial class SearchViewModel : ObservableObject
         if (SelectedRemote == null || items.Count == 0) return;
 
         var settings = _settingsService.Load();
-        var dialog = new OpenFolderDialog
-        {
-            Title = "Select download folder",
-            InitialDirectory = string.IsNullOrWhiteSpace(settings.DefaultDownloadPath)
-                ? null : settings.DefaultDownloadPath
-        };
-        if (dialog.ShowDialog() != true) return;
+        var options = ShowDownloadOptions(items, settings.DefaultDownloadPath, defaultPreserveStructure: true);
+        if (options is null) return;
 
-        await DownloadMultipleAsync(items, dialog.FolderName);
+        await DownloadMultipleAsync(items, options);
     }
 
-    private async Task DownloadMultipleAsync(IList<RemoteItem> items, string localPath)
+    private async Task DownloadMultipleAsync(IList<RemoteItem> items, DownloadRequestOptions options)
     {
         var completed = 0;
         var failed = 0;
-
-        foreach (var item in items)
+        var progressWindow = new DownloadProgressWindow(items.Count, options.DestinationPath)
         {
-            var remotePath = $"{SelectedRemote}:{item.Path}";
-            var localTarget = System.IO.Path.Combine(localPath, item.Name);
+            Owner = Application.Current?.MainWindow
+        };
 
-            var args = item.IsDirectory
-                ? new List<string> { "copy", remotePath, localTarget }
-                : new List<string> { "copyto", remotePath, localTarget };
+        progressWindow.Show();
+        progressWindow.ReportOutput("Download queued.", isError: false);
 
-            StatusMessage = $"Downloading {item.Name}... ({completed + 1}/{items.Count})";
-            try
+        try
+        {
+            foreach (var (item, index) in items.Select((item, index) => (item, index)))
             {
-                var (exitCode, _, _) = await _processService.ExecuteAsync(args);
-                if (exitCode == 0) completed++;
-                else failed++;
-            }
-            catch
-            {
-                failed++;
+                var remotePath = $"{SelectedRemote}:{item.Path}";
+                var localTarget = BuildLocalTargetPath(options.DestinationPath, item, options.PreserveFolderStructure);
+                EnsureParentDirectory(localTarget, item.IsDirectory);
+
+                var args = item.IsDirectory
+                    ? new List<string> { "copy", remotePath, localTarget }
+                    : new List<string> { "copyto", remotePath, localTarget };
+
+                if (options.CreateLogFile && !string.IsNullOrWhiteSpace(options.LogFilePath))
+                {
+                    args.Add("--log-file");
+                    args.Add(options.LogFilePath);
+                }
+
+                StatusMessage = $"Downloading {item.Name}... ({index + 1}/{items.Count})";
+                progressWindow.SetCurrentItem(index + 1, items.Count, item.Name, localTarget);
+                progressWindow.ReportOutput($"Starting {item.Name}", isError: false);
+
+                try
+                {
+                    var result = await _processService.ExecuteDetailedAsync(new AppRCloneCommandRequest
+                    {
+                        Arguments = args,
+                        Operation = item.IsDirectory ? "copy" : "copyto",
+                        Category = "Download",
+                        OperationProfile = RCloneOperationProfile.Download,
+                        ExecutionOptions = new RCloneOperationOptions
+                        {
+                            Transfers = options.Transfers,
+                            Checkers = options.Checkers,
+                            DryRun = options.DryRun,
+                            ExtraFlagsText = options.ExtraFlagsText,
+                            UseProgress = true
+                        },
+                        RequiredArguments = ["--stats=1s", "--stats-one-line"],
+                        OnOutput = output => progressWindow.ReportOutput(output.Text, output.IsError)
+                    });
+
+                    if (result.IsSuccess)
+                    {
+                        completed++;
+                    }
+                    else
+                    {
+                        failed++;
+                        progressWindow.ReportOutput(
+                            string.IsNullOrWhiteSpace(result.Error)
+                                ? $"{item.Name} failed with exit code {result.ExitCode}."
+                                : result.Error,
+                            isError: true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    progressWindow.ReportOutput($"{item.Name} failed: {ex.Message}", isError: true);
+                }
             }
         }
+        finally
+        {
+            var summary = failed == 0
+                ? $"Downloaded {completed} item{(completed != 1 ? "s" : "")} to {options.DestinationPath}"
+                : $"Downloaded {completed}, failed {failed} of {items.Count}";
 
-        StatusMessage = failed == 0
-            ? $"Downloaded {completed} item{(completed != 1 ? "s" : "")} to {localPath}"
-            : $"Downloaded {completed}, failed {failed} of {items.Count}";
+            StatusMessage = summary;
+            progressWindow.Complete(summary, failed > 0);
+        }
     }
 
     public async Task DeleteItemsAsync(IList<RemoteItem> items)
@@ -197,8 +254,14 @@ public partial class SearchViewModel : ObservableObject
             StatusMessage = $"Deleting {item.Name}... ({completed + failed + 1}/{items.Count})";
             try
             {
-                var (exitCode, _, _) = await _processService.ExecuteAsync(args);
-                if (exitCode == 0)
+                var deleteResult = await _processService.ExecuteDetailedAsync(new AppRCloneCommandRequest
+                {
+                    Arguments = args,
+                    Operation = item.IsDirectory ? "purge" : "deletefile",
+                    Category = "Delete",
+                    OperationProfile = RCloneOperationProfile.Delete
+                });
+                if (deleteResult.IsSuccess)
                 {
                     Results.Remove(item);
                     completed++;
@@ -271,5 +334,46 @@ public partial class SearchViewModel : ObservableObject
             preview += ", ...";
 
         return $"{items.Count} items ({preview})";
+    }
+
+    private DownloadRequestOptions? ShowDownloadOptions(IList<RemoteItem> items, string initialPath, bool defaultPreserveStructure)
+    {
+        if (SelectedRemote is null)
+            return null;
+
+        var settings = _settingsService.Load();
+        var downloadProfile = settings.OperationProfiles.Download;
+        var window = new DownloadOptionsWindow(
+            SelectedRemote,
+            items.ToList(),
+            initialPath,
+            defaultPreserveStructure,
+            downloadProfile.Transfers ?? settings.DefaultTransfers,
+            downloadProfile.Checkers ?? settings.DefaultCheckers,
+            downloadProfile.ExtraFlagsText)
+        {
+            Owner = Application.Current?.MainWindow
+        };
+
+        return window.ShowDialog() == true ? window.Result : null;
+    }
+
+    private static string BuildLocalTargetPath(string basePath, RemoteItem item, bool preserveStructure)
+    {
+        if (!preserveStructure)
+            return Path.Combine(basePath, item.Name);
+
+        var relativePath = item.Path.TrimEnd('/').Replace('/', Path.DirectorySeparatorChar);
+        return Path.Combine(basePath, relativePath);
+    }
+
+    private static void EnsureParentDirectory(string localTarget, bool isDirectory)
+    {
+        var directory = isDirectory
+            ? localTarget
+            : Path.GetDirectoryName(localTarget);
+
+        if (!string.IsNullOrWhiteSpace(directory))
+            Directory.CreateDirectory(directory);
     }
 }

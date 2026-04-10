@@ -1,8 +1,10 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.IO;
 using EZRClone.Models;
 using EZRClone.Services;
+using HotCoreUtility.RClone;
 
 namespace EZRClone.ViewModels;
 
@@ -19,6 +21,24 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private string _defaultDownloadPath = string.Empty;
+
+    [ObservableProperty]
+    private int _defaultTransfers = 4;
+
+    [ObservableProperty]
+    private int _defaultCheckers = 8;
+
+    [ObservableProperty]
+    private string _defaultDownloadExtraFlags = string.Empty;
+
+    [ObservableProperty]
+    private ObservableCollection<OperationOptionsEditor> _operationEditors = new();
+
+    [ObservableProperty]
+    private ObservableCollection<ConnectionPresetOption> _connectionPresets = new();
+
+    [ObservableProperty]
+    private ConnectionPresetOption? _selectedConnectionPreset;
 
     [ObservableProperty]
     private bool _alwaysGetDirectoryInfo;
@@ -54,8 +74,31 @@ public partial class SettingsViewModel : ObservableObject
         RCloneExePath = settings.RCloneExePath;
         RCloneConfigPath = settings.RCloneConfigPath;
         DefaultDownloadPath = settings.DefaultDownloadPath;
+        DefaultTransfers = settings.DefaultTransfers <= 0 ? 4 : settings.DefaultTransfers;
+        DefaultCheckers = settings.DefaultCheckers <= 0 ? 8 : settings.DefaultCheckers;
+        DefaultDownloadExtraFlags = settings.DefaultDownloadExtraFlags;
         AlwaysGetDirectoryInfo = settings.AlwaysGetDirectoryInfo;
         DefaultDeleteDryRun = settings.DefaultDeleteDryRun;
+        OperationEditors = BuildOperationEditors(settings.OperationProfiles);
+        DefaultTransfers = settings.OperationProfiles.Download.Transfers ?? DefaultTransfers;
+        DefaultCheckers = settings.OperationProfiles.Download.Checkers ?? DefaultCheckers;
+        DefaultDownloadExtraFlags = settings.OperationProfiles.Download.ExtraFlagsText;
+        ConnectionPresets = BuildConnectionPresets();
+        SelectedConnectionPreset = ConnectionPresets.FirstOrDefault();
+        _processService.OperationProfiles = settings.OperationProfiles;
+    }
+
+    [RelayCommand]
+    private void ApplyConnectionPreset()
+    {
+        if (SelectedConnectionPreset?.Profiles is null)
+            return;
+
+        OperationEditors = BuildOperationEditors(CloneProfiles(SelectedConnectionPreset.Profiles));
+        DefaultTransfers = SelectedConnectionPreset.Profiles.Download.Transfers ?? DefaultTransfers;
+        DefaultCheckers = SelectedConnectionPreset.Profiles.Download.Checkers ?? DefaultCheckers;
+        DefaultDownloadExtraFlags = SelectedConnectionPreset.Profiles.Download.ExtraFlagsText;
+        ValidationMessage = $"Applied recommended {SelectedConnectionPreset.DisplayName} connection profile. Save Settings to keep it.";
     }
 
     [RelayCommand]
@@ -75,12 +118,18 @@ public partial class SettingsViewModel : ObservableObject
     {
         var resolvedExePath = RCloneExePath.Trim();
         var resolvedConfigPath = RCloneConfigPath.Trim();
+        var profiles = BuildOperationProfiles();
+        var downloadProfile = profiles.Download;
 
         var settings = new AppSettings
         {
             RCloneExePath = resolvedExePath,
             RCloneConfigPath = string.Empty,
             DefaultDownloadPath = DefaultDownloadPath.Trim(),
+            DefaultTransfers = downloadProfile.Transfers ?? 4,
+            DefaultCheckers = downloadProfile.Checkers ?? 8,
+            DefaultDownloadExtraFlags = downloadProfile.ExtraFlagsText,
+            OperationProfiles = profiles,
             AlwaysGetDirectoryInfo = AlwaysGetDirectoryInfo,
             StartupValidationEnabled = false,
             DefaultDeleteDryRun = DefaultDeleteDryRun
@@ -88,6 +137,7 @@ public partial class SettingsViewModel : ObservableObject
 
         _settingsService.Save(settings);
         _processService.RCloneExePath = resolvedExePath;
+        _processService.OperationProfiles = settings.OperationProfiles;
 
         if (string.IsNullOrWhiteSpace(resolvedExePath))
         {
@@ -195,6 +245,7 @@ public partial class SettingsViewModel : ObservableObject
         {
             _processService.RCloneExePath = RCloneExePath;
             _processService.RCloneConfigPath = RCloneConfigPath;
+            _processService.OperationProfiles = BuildOperationProfiles();
             var version = await _processService.GetVersionAsync();
             var firstLine = version.Split('\n').FirstOrDefault() ?? version;
             ExecutableValidationMessage = $"Valid — {firstLine}";
@@ -244,8 +295,14 @@ public partial class SettingsViewModel : ObservableObject
         {
             try
             {
-                var result = await _processService.ExecuteAsync(new List<string> { "listremotes" });
-                var remoteCount = result.output
+                var result = await _processService.ExecuteDetailedAsync(new EZRClone.Models.RCloneCommandRequest
+                {
+                    Arguments = ["listremotes"],
+                    Operation = "listremotes",
+                    Category = "Validation",
+                    OperationProfile = RCloneOperationProfile.RemoteValidation
+                });
+                var remoteCount = result.Output
                     .Split('\n', StringSplitOptions.RemoveEmptyEntries)
                     .Length;
                 RemoteValidationMessage = remoteCount == 0
@@ -281,4 +338,259 @@ public partial class SettingsViewModel : ObservableObject
 
         return resolvedPath;
     }
+
+    private ObservableCollection<OperationOptionsEditor> BuildOperationEditors(RCloneOperationProfileSet profiles)
+    {
+        return new ObservableCollection<OperationOptionsEditor>(new[]
+        {
+            CreateEditor(RCloneOperationProfile.Download, "Download", "Interactive downloads from Browse and Search.", profiles.Download),
+            CreateEditor(RCloneOperationProfile.Browse, "Browse", "Remote directory listing requests.", profiles.Browse),
+            CreateEditor(RCloneOperationProfile.Search, "Search", "Recursive search/list requests.", profiles.Search),
+            CreateEditor(RCloneOperationProfile.DirectoryInfo, "Directory Info", "Recursive size and file count lookups.", profiles.DirectoryInfo),
+            CreateEditor(RCloneOperationProfile.Delete, "Delete", "Interactive deletes from Browse and Search.", profiles.Delete),
+            CreateEditor(RCloneOperationProfile.JobCopy, "Job Copy", "Saved jobs that run copy.", profiles.JobCopy),
+            CreateEditor(RCloneOperationProfile.JobSync, "Job Sync", "Saved jobs that run sync.", profiles.JobSync),
+            CreateEditor(RCloneOperationProfile.JobMove, "Job Move", "Saved jobs that run move.", profiles.JobMove),
+            CreateEditor(RCloneOperationProfile.JobDelete, "Job Delete", "Saved jobs that run delete.", profiles.JobDelete),
+            CreateEditor(RCloneOperationProfile.RemoteValidation, "Remote Validation", "Connection checks like listremotes and remote tests.", profiles.RemoteValidation)
+        });
+    }
+
+    private static OperationOptionsEditor CreateEditor(
+        RCloneOperationProfile profile,
+        string displayName,
+        string description,
+        RCloneOperationOptions options)
+    {
+        return new OperationOptionsEditor
+        {
+            Profile = profile,
+            DisplayName = displayName,
+            Description = description,
+            Transfers = options.Transfers?.ToString() ?? string.Empty,
+            Checkers = options.Checkers?.ToString() ?? string.Empty,
+            Retries = options.Retries?.ToString() ?? string.Empty,
+            LowLevelRetries = options.LowLevelRetries?.ToString() ?? string.Empty,
+            TimeoutMilliseconds = options.TimeoutMilliseconds?.ToString() ?? string.Empty,
+            MultiThreadStreams = options.MultiThreadStreams?.ToString() ?? string.Empty,
+            BandwidthLimit = options.BandwidthLimit,
+            UseProgress = options.UseProgress == true,
+            ExtraFlagsText = options.ExtraFlagsText
+        };
+    }
+
+    private RCloneOperationProfileSet BuildOperationProfiles()
+    {
+        var profiles = new RCloneOperationProfileSet();
+        foreach (var editor in OperationEditors)
+        {
+            profiles.Set(editor.Profile, editor.ToOptions());
+        }
+        return profiles;
+    }
+
+    private static ObservableCollection<ConnectionPresetOption> BuildConnectionPresets()
+    {
+        return new ObservableCollection<ConnectionPresetOption>(new[]
+        {
+            new ConnectionPresetOption
+            {
+                DisplayName = "200 Mbps",
+                Summary = "Balanced defaults for solid home broadband.",
+                Profiles = CreatePreset(downloadTransfers: 6, downloadCheckers: 12, multiThreadStreams: 4, browseTransfers: 2, browseCheckers: 4, deleteCheckers: 4)
+            },
+            new ConnectionPresetOption
+            {
+                DisplayName = "500 Mbps",
+                Summary = "Recommended starting point for roughly 486/98 Mbps service.",
+                Profiles = CreatePreset(downloadTransfers: 10, downloadCheckers: 20, multiThreadStreams: 6, browseTransfers: 3, browseCheckers: 6, deleteCheckers: 6)
+            },
+            new ConnectionPresetOption
+            {
+                DisplayName = "750 Mbps",
+                Summary = "Higher-throughput defaults while keeping browse/search conservative.",
+                Profiles = CreatePreset(downloadTransfers: 12, downloadCheckers: 24, multiThreadStreams: 8, browseTransfers: 4, browseCheckers: 8, deleteCheckers: 8)
+            },
+            new ConnectionPresetOption
+            {
+                DisplayName = "1000 Mbps",
+                Summary = "Aggressive transfer defaults for gigabit-class service.",
+                Profiles = CreatePreset(downloadTransfers: 16, downloadCheckers: 32, multiThreadStreams: 8, browseTransfers: 4, browseCheckers: 8, deleteCheckers: 8)
+            }
+        });
+    }
+
+    private static RCloneOperationProfileSet CreatePreset(
+        int downloadTransfers,
+        int downloadCheckers,
+        int multiThreadStreams,
+        int browseTransfers,
+        int browseCheckers,
+        int deleteCheckers)
+    {
+        return new RCloneOperationProfileSet
+        {
+            Download = new RCloneOperationOptions
+            {
+                Transfers = downloadTransfers,
+                Checkers = downloadCheckers,
+                Retries = 3,
+                LowLevelRetries = 10,
+                MultiThreadStreams = multiThreadStreams,
+                UseProgress = false
+            },
+            Browse = new RCloneOperationOptions
+            {
+                Transfers = browseTransfers,
+                Checkers = browseCheckers,
+                Retries = 2,
+                LowLevelRetries = 4,
+                UseProgress = false
+            },
+            Search = new RCloneOperationOptions
+            {
+                Transfers = browseTransfers,
+                Checkers = browseCheckers,
+                Retries = 2,
+                LowLevelRetries = 4,
+                UseProgress = false
+            },
+            DirectoryInfo = new RCloneOperationOptions
+            {
+                Transfers = 1,
+                Checkers = browseCheckers,
+                Retries = 2,
+                LowLevelRetries = 4,
+                UseProgress = false
+            },
+            Delete = new RCloneOperationOptions
+            {
+                Checkers = deleteCheckers,
+                Retries = 3,
+                LowLevelRetries = 10,
+                UseProgress = false
+            },
+            JobCopy = new RCloneOperationOptions
+            {
+                Transfers = downloadTransfers,
+                Checkers = downloadCheckers,
+                Retries = 3,
+                LowLevelRetries = 10,
+                MultiThreadStreams = multiThreadStreams,
+                UseProgress = false
+            },
+            JobSync = new RCloneOperationOptions
+            {
+                Transfers = downloadTransfers,
+                Checkers = downloadCheckers,
+                Retries = 3,
+                LowLevelRetries = 10,
+                MultiThreadStreams = multiThreadStreams,
+                UseProgress = false
+            },
+            JobMove = new RCloneOperationOptions
+            {
+                Transfers = downloadTransfers,
+                Checkers = downloadCheckers,
+                Retries = 3,
+                LowLevelRetries = 10,
+                MultiThreadStreams = multiThreadStreams,
+                UseProgress = false
+            },
+            JobDelete = new RCloneOperationOptions
+            {
+                Checkers = deleteCheckers,
+                Retries = 3,
+                LowLevelRetries = 10,
+                UseProgress = false
+            },
+            RemoteValidation = new RCloneOperationOptions
+            {
+                Retries = 1,
+                LowLevelRetries = 1,
+                UseProgress = false
+            }
+        };
+    }
+
+    private static RCloneOperationProfileSet CloneProfiles(RCloneOperationProfileSet source)
+    {
+        return new RCloneOperationProfileSet
+        {
+            Download = source.Download.Clone(),
+            Browse = source.Browse.Clone(),
+            Search = source.Search.Clone(),
+            DirectoryInfo = source.DirectoryInfo.Clone(),
+            Delete = source.Delete.Clone(),
+            JobCopy = source.JobCopy.Clone(),
+            JobSync = source.JobSync.Clone(),
+            JobMove = source.JobMove.Clone(),
+            JobDelete = source.JobDelete.Clone(),
+            RemoteValidation = source.RemoteValidation.Clone()
+        };
+    }
+}
+
+public partial class OperationOptionsEditor : ObservableObject
+{
+    public required RCloneOperationProfile Profile { get; init; }
+    public required string DisplayName { get; init; }
+    public required string Description { get; init; }
+
+    [ObservableProperty]
+    private string _transfers = string.Empty;
+
+    [ObservableProperty]
+    private string _checkers = string.Empty;
+
+    [ObservableProperty]
+    private string _retries = string.Empty;
+
+    [ObservableProperty]
+    private string _lowLevelRetries = string.Empty;
+
+    [ObservableProperty]
+    private string _timeoutMilliseconds = string.Empty;
+
+    [ObservableProperty]
+    private string _multiThreadStreams = string.Empty;
+
+    [ObservableProperty]
+    private string _bandwidthLimit = string.Empty;
+
+    [ObservableProperty]
+    private bool _useProgress;
+
+    [ObservableProperty]
+    private string _extraFlagsText = string.Empty;
+
+    public RCloneOperationOptions ToOptions()
+    {
+        return new RCloneOperationOptions
+        {
+            Transfers = ParseInt(Transfers),
+            Checkers = ParseInt(Checkers),
+            Retries = ParseInt(Retries),
+            LowLevelRetries = ParseInt(LowLevelRetries),
+            TimeoutMilliseconds = ParseInt(TimeoutMilliseconds),
+            MultiThreadStreams = ParseInt(MultiThreadStreams),
+            BandwidthLimit = BandwidthLimit.Trim(),
+            UseProgress = UseProgress,
+            ExtraFlagsText = ExtraFlagsText.Trim()
+        };
+    }
+
+    private static int? ParseInt(string value)
+    {
+        return int.TryParse(value?.Trim(), out var parsed) && parsed > 0
+            ? parsed
+            : null;
+    }
+}
+
+public sealed class ConnectionPresetOption
+{
+    public required string DisplayName { get; init; }
+    public required string Summary { get; init; }
+    public required RCloneOperationProfileSet Profiles { get; init; }
 }

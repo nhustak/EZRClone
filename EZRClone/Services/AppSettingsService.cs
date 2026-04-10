@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using EZRClone.Models;
+using HotCoreUtility.RClone;
 
 namespace EZRClone.Services;
 
@@ -20,10 +21,10 @@ public class AppSettingsService : IAppSettingsService
     public AppSettings Load()
     {
         if (!File.Exists(SettingsPath))
-            return new AppSettings();
+            return Normalize(new AppSettings());
 
         var json = File.ReadAllText(SettingsPath);
-        return JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
+        return Normalize(JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings());
     }
 
     public void Save(AppSettings settings)
@@ -31,5 +32,21 @@ public class AppSettingsService : IAppSettingsService
         Directory.CreateDirectory(SettingsDir);
         var json = JsonSerializer.Serialize(settings, JsonOptions);
         File.WriteAllText(SettingsPath, json);
+    }
+
+    private static AppSettings Normalize(AppSettings settings)
+    {
+        settings.OperationProfiles ??= new RCloneOperationProfileSet();
+
+        if (settings.DefaultTransfers > 0)
+            settings.OperationProfiles.Download.Transfers = settings.DefaultTransfers;
+
+        if (settings.DefaultCheckers > 0)
+            settings.OperationProfiles.Download.Checkers = settings.DefaultCheckers;
+
+        if (!string.IsNullOrWhiteSpace(settings.DefaultDownloadExtraFlags))
+            settings.OperationProfiles.Download.ExtraFlagsText = settings.DefaultDownloadExtraFlags;
+
+        return settings;
     }
 }

@@ -1,3 +1,5 @@
+using HotCoreUtility.RClone;
+
 namespace EZRClone.Models;
 
 public class RCloneCommandRequest
@@ -5,6 +7,9 @@ public class RCloneCommandRequest
     public required IReadOnlyList<string> Arguments { get; init; }
     public string Operation { get; init; } = string.Empty;
     public string Category { get; init; } = "RClone";
+    public RCloneOperationProfile? OperationProfile { get; init; }
+    public RCloneOperationOptions? ExecutionOptions { get; init; }
+    public IReadOnlyList<string>? RequiredArguments { get; init; }
     public string? JobId { get; init; }
     public string? JobName { get; init; }
     public int? TimeoutMilliseconds { get; init; }

@@ -5,6 +5,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EZRClone.Models;
 using EZRClone.Services;
+using EZRClone.Helpers;
+using RCloneOperationOptions = HotCoreUtility.RClone.RCloneOperationOptions;
+using AppRCloneCommandRequest = EZRClone.Models.RCloneCommandRequest;
 
 namespace EZRClone.ViewModels;
 
@@ -244,11 +247,18 @@ public partial class JobsViewModel : ObservableObject
         try
         {
             var args = BuildRCloneArgs(SelectedJob, effectiveDryRun);
-            var request = new RCloneCommandRequest
+            var request = new AppRCloneCommandRequest
             {
                 Arguments = args,
                 Operation = SelectedJob.Operation.ToString(),
                 Category = "Job",
+                OperationProfile = RCloneOperationProfileHelper.GetJobProfile(SelectedJob.Operation),
+                ExecutionOptions = new RCloneOperationOptions
+                {
+                    Transfers = SelectedJob.Operation == RCloneOperation.Delete ? null : SelectedJob.Transfers,
+                    DryRun = effectiveDryRun,
+                    ExtraFlagsText = SelectedJob.ExtraFlagsText
+                },
                 JobId = SelectedJob.Id,
                 JobName = SelectedJob.Name,
                 OnOutput = output =>
@@ -438,15 +448,6 @@ public partial class JobsViewModel : ObservableObject
         if (job.Operation != RCloneOperation.Delete)
             args.Add(ComposePath(job.DestinationIsRemote, job.DestinationRemoteName, job.DestinationPath));
 
-        if (job.Operation != RCloneOperation.Delete)
-        {
-            args.Add("--transfers");
-            args.Add(job.Transfers.ToString());
-        }
-
-        if (effectiveDryRun)
-            args.Add("--dry-run");
-
         if (!string.IsNullOrEmpty(job.MinAge))
         {
             args.Add("--min-age");
@@ -484,7 +485,6 @@ public partial class JobsViewModel : ObservableObject
             args.Add(pattern);
         }
 
-        args.AddRange(job.ExtraFlags);
         return args;
     }
 
