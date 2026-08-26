@@ -63,7 +63,7 @@ public partial class SearchViewModel : ObservableObject
         try
         {
             var settings = _settingsService.Load();
-            var remotes = await Task.Run(() => _configService.ReadConfig(settings.RCloneConfigPath));
+            var remotes = await _configService.ReadConfigAsync(settings.RCloneConfigPath);
             AvailableRemotes = new ObservableCollection<string>(remotes.Select(r => r.Name));
         }
         catch

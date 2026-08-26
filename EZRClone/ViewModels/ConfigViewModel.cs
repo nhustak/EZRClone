@@ -79,10 +79,9 @@ public partial class ConfigViewModel : ObservableObject
 
         StatusMessage = "Loading remotes...";
 
-        var remotes = await Task.Run(() =>
-            _configService.ReadConfig(ConfigFilePath)
-                .OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
-                .ToList());
+        var remotes = (await _configService.ReadConfigAsync(ConfigFilePath))
+            .OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         Remotes.Clear();
         foreach (var remote in remotes)
@@ -139,7 +138,7 @@ public partial class ConfigViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void Save()
+    private async Task Save()
     {
         if (!EnsureConfigPathReady())
             return;
@@ -175,7 +174,7 @@ public partial class ConfigViewModel : ObservableObject
                 Remotes[index] = remote;
         }
 
-        RewriteSortedRemotes();
+        await RewriteSortedRemotesAsync();
         SelectedRemote = Remotes.FirstOrDefault(r => string.Equals(r.Name, remote.Name, StringComparison.OrdinalIgnoreCase));
         IsEditing = false;
         StatusMessage = $"Saved remote '{remote.Name}'.";
@@ -189,7 +188,7 @@ public partial class ConfigViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void Delete()
+    private async Task Delete()
     {
         if (SelectedRemote is null) return;
         if (!EnsureConfigPathReady())
@@ -206,7 +205,7 @@ public partial class ConfigViewModel : ObservableObject
 
         var name = SelectedRemote.Name;
         Remotes.Remove(SelectedRemote);
-        RewriteSortedRemotes();
+        await RewriteSortedRemotesAsync();
         SelectedRemote = Remotes.FirstOrDefault();
         StatusMessage = $"Deleted remote '{name}'.";
     }
@@ -288,14 +287,14 @@ public partial class ConfigViewModel : ObservableObject
         return null;
     }
 
-    private void RewriteSortedRemotes()
+    private async Task RewriteSortedRemotesAsync()
     {
         var sorted = Remotes.OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase).ToList();
         Remotes.Clear();
         foreach (var remote in sorted)
             Remotes.Add(remote);
 
-        _configService.WriteConfig(ConfigFilePath, sorted);
+        await _configService.WriteConfigAsync(ConfigFilePath, sorted);
     }
 
     private void UpdateDisplayProperties(RCloneRemote? remote)

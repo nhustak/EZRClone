@@ -85,20 +85,18 @@ public partial class JobsViewModel : ObservableObject
         await LoadJobsAsync();
     }
 
-    private Task LoadRemotesAsync()
+    private async Task LoadRemotesAsync()
     {
         try
         {
             var settings = _settingsService.Load();
-            var remotes = _configService.ReadConfig(settings.RCloneConfigPath);
+            var remotes = await _configService.ReadConfigAsync(settings.RCloneConfigPath);
             AvailableRemotes = new ObservableCollection<string>(remotes.Select(r => r.Name));
         }
         catch
         {
             AvailableRemotes = new ObservableCollection<string>();
         }
-
-        return Task.CompletedTask;
     }
 
     [RelayCommand]
@@ -113,10 +111,6 @@ public partial class JobsViewModel : ObservableObject
             jobName = $"Job {jobNumber}";
         }
 
-        var logDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "EZRClone", "Logs");
-
         EditingJob = new RCloneJob
         {
             Name = jobName,
@@ -124,33 +118,47 @@ public partial class JobsViewModel : ObservableObject
             Transfers = 4,
             Verbosity = RCloneVerbosity.Normal,
             CreateLogFile = true,
-            LogFilePath = Path.Combine(logDirectory, $"{jobName}.log"),
+            LogFilePath = BuildLogFilePath(jobName),
             DryRun = false
         };
         IsEditing = true;
     }
 
-    [RelayCommand]
-    private void DuplicateJob()
-    {
-        if (SelectedJob == null) return;
+    private bool CanClone() => SelectedJob is not null && !IsEditing;
 
-        var clone = CloneJob(SelectedJob);
+    [RelayCommand(CanExecute = nameof(CanClone))]
+    private async Task Clone()
+    {
+        if (SelectedJob is null)
+            return;
+
+        var clone = CopyJob(SelectedJob);
         clone.Id = Guid.NewGuid().ToString();
-        clone.Name = BuildUniqueJobName($"{SelectedJob.Name} Copy");
+        clone.Name = BuildUniqueJobName($"{SelectedJob.Name} Clone");
         clone.LastRun = null;
         clone.LastStatus = RCloneJobStatus.NotRun;
         clone.LastError = null;
-        EditingJob = clone;
-        IsEditing = true;
+        if (clone.CreateLogFile)
+            clone.LogFilePath = BuildLogFilePath(clone.Name);
+
+        Jobs.Add(clone);
+        SortJobs();
+        await _jobStorageService.SaveJobsAsync(Jobs.ToList());
+        OnPropertyChanged(nameof(HasJobs));
+        SelectedJob = Jobs.FirstOrDefault(job => job.Id == clone.Id);
+        StatusMessage = $"Cloned job '{clone.Name}'.";
     }
+
+    partial void OnSelectedJobChanged(RCloneJob? value) => CloneCommand.NotifyCanExecuteChanged();
+
+    partial void OnIsEditingChanged(bool value) => CloneCommand.NotifyCanExecuteChanged();
 
     [RelayCommand]
     private void EditJob()
     {
         if (SelectedJob == null) return;
 
-        EditingJob = CloneJob(SelectedJob);
+        EditingJob = CopyJob(SelectedJob);
         IsEditing = true;
     }
 
@@ -495,7 +503,7 @@ public partial class JobsViewModel : ObservableObject
             : path;
     }
 
-    private RCloneJob CloneJob(RCloneJob job)
+    private static RCloneJob CopyJob(RCloneJob job)
     {
         return new RCloneJob
         {
@@ -517,10 +525,23 @@ public partial class JobsViewModel : ObservableObject
             ExcludePatterns = new List<string>(job.ExcludePatterns),
             MinAge = job.MinAge,
             ExtraFlags = new List<string>(job.ExtraFlags),
+            IsScheduled = job.IsScheduled,
+            ScheduleCron = job.ScheduleCron,
             LastRun = job.LastRun,
             LastStatus = job.LastStatus,
             LastError = job.LastError
         };
+    }
+
+    private static string BuildLogFilePath(string jobName)
+    {
+        var logDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "EZRClone", "Logs");
+        var fileName = string.Join("_", jobName.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(fileName))
+            fileName = "job";
+        return Path.Combine(logDirectory, $"{fileName}.log");
     }
 
     private string BuildUniqueJobName(string seed)

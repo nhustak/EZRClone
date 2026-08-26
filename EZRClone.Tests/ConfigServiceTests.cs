@@ -8,7 +8,7 @@ namespace EZRClone.Tests;
 public class ConfigServiceTests
 {
     [TestMethod]
-    public void ReadConfig_ParsesRemotesAndSkipsComments()
+    public async Task ReadConfig_ParsesRemotesAndSkipsComments()
     {
         var tempFile = Path.GetTempFileName();
         try
@@ -25,7 +25,7 @@ public class ConfigServiceTests
                 """);
 
             var service = new RCloneConfigService();
-            var remotes = service.ReadConfig(tempFile);
+            var remotes = await service.ReadConfigAsync(tempFile);
 
             Assert.AreEqual(2, remotes.Count);
             Assert.AreEqual("alpha", remotes[0].Name);
@@ -41,13 +41,13 @@ public class ConfigServiceTests
     }
 
     [TestMethod]
-    public void WriteConfig_WritesExpectedSections()
+    public async Task WriteConfig_WritesExpectedSections()
     {
         var tempFile = Path.GetTempFileName();
         try
         {
             var service = new RCloneConfigService();
-            service.WriteConfig(tempFile, new List<RCloneRemote>
+            await service.WriteConfigAsync(tempFile, new List<RCloneRemote>
             {
                 new()
                 {

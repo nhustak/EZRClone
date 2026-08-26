@@ -31,6 +31,9 @@
                         Command="{Binding AddJobCommand}"
                         Padding="12,6" Margin="0,0,10,0"
                         Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}"/>
+                <Button Content="Clone" Command="{Binding CloneCommand}"
+                        Padding="12,6" Margin="0,0,10,0"
+                        Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}"/>
                 <Button Content="📥 Import" Padding="12,6" Margin="0,0,10,0"
                         Click="OnImportBatch"
                         Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}"/>
@@ -249,7 +252,7 @@
                                         Padding="15,8" Margin="0,0,10,0" FontWeight="SemiBold"/>
                                 <Button Content="✏ Edit" Command="{Binding DataContext.EditJobCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         Padding="15,8" Margin="0,0,10,0"/>
-                                <Button Content="⧉ Duplicate" Command="{Binding DataContext.DuplicateJobCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                <Button Content="Clone" Command="{Binding DataContext.CloneCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         Padding="15,8" Margin="0,0,10,0"/>
                                 <Button Content="📝 History" Command="{Binding DataContext.OpenHistoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         Padding="15,8" Margin="0,0,10,0"/>

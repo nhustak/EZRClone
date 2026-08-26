@@ -19,19 +19,18 @@ public class RCloneConfigService : IRCloneConfigService
         _configManager = configManager;
     }
 
-    public List<RCloneRemote> ReadConfig(string configPath)
+    public async Task<List<RCloneRemote>> ReadConfigAsync(string configPath)
     {
         if (!File.Exists(configPath))
             return [];
 
-        return _configManager.ReadAllAsync(configPath).GetAwaiter().GetResult()
-            .Select(ToRemoteModel)
-            .ToList();
+        var remotes = await _configManager.ReadAllAsync(configPath);
+        return remotes.Select(ToRemoteModel).ToList();
     }
 
-    public void WriteConfig(string configPath, List<RCloneRemote> remotes)
+    public Task WriteConfigAsync(string configPath, List<RCloneRemote> remotes)
     {
-        _configManager.WriteFullConfigAsync(configPath, remotes.Select(ToRemoteDefinition).ToList()).GetAwaiter().GetResult();
+        return _configManager.WriteFullConfigAsync(configPath, remotes.Select(ToRemoteDefinition).ToList());
     }
 
     private static RCloneRemoteDefinition ToRemoteDefinition(RCloneRemote remote)

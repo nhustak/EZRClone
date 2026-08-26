@@ -4,6 +4,6 @@ namespace EZRClone.Services;
 
 public interface IRCloneConfigService
 {
-    List<RCloneRemote> ReadConfig(string configPath);
-    void WriteConfig(string configPath, List<RCloneRemote> remotes);
+    Task<List<RCloneRemote>> ReadConfigAsync(string configPath);
+    Task WriteConfigAsync(string configPath, List<RCloneRemote> remotes);
 }
